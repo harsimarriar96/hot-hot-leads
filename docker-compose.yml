@@ -1,0 +1,21 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: hothotleads-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: hothotleads
+      POSTGRES_PASSWORD: hothotleads
+      POSTGRES_DB: hothotleads
+    ports:
+      - "5434:5432"
+    volumes:
+      - hothotleads-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "hothotleads", "-d", "hothotleads"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  hothotleads-pgdata:

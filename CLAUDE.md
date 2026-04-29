@@ -5,80 +5,92 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Project Overview
 
 **HotHotLeads** is an AI-led GTM (Go-To-Market) Engineering engine built on NestJS + Claude. It:
-- Reads product knowledge (ICP, strategy, signals, pricing) from a structured **Notion workspace**
+- Reads and writes product knowledge (ICP, strategy, channels, pricing) in a **Postgres** database managed via MikroORM in [packages/db](packages/db/)
 - Discovers, enriches, scores leads and drafts outreach using **Claude multi-agent pipelines**
 - Monitors GTM signals via **Exa** web research
 - Is controlled via **Telegram** and **WhatsApp** — both on-demand and on schedule
-- Writes all output (leads, outreach, feedback) back to **Notion**
+- Persists all output (leads, outreach, signals, feedback) in Postgres
 
 ## Commands
 
+All commands run from the repo root and are orchestrated by Turborepo.
+
 ```bash
-# Install dependencies
+# Install all workspace dependencies (one node_modules at the root)
 npm install
 
-# Development (auto-reload)
-npm run start:dev
+# One-time: start Postgres and apply migrations
+docker compose up -d postgres
+npm --workspace @hothotleads/db run db:migrate
 
-# Production build + start
-npm run build && npm run start:prod
+# Development — starts both apps in watch mode
+npx turbo run dev
+
+# Run only the API in watch mode
+npx turbo run dev --filter=@hothotleads/api
+
+# Run only the web app
+npx turbo run dev --filter=@hothotleads/web
+
+# Production build (packages, then apps, in dependency order)
+npx turbo run build
+
+# Type-check the entire workspace
+npx turbo run typecheck
+
+# Lint the entire workspace
+npx turbo run lint
 
 # Run all tests
-npm test
+npx turbo run test
 
-# Run a single test file
-npm run test:single -- src/agents/orchestrator/orchestrator.agent.spec.ts
+# Run a single API test file
+npm --workspace @hothotleads/api run test:single -- src/agents/orchestrator/orchestrator.agent.spec.ts
 
-# Lint and format
-npm run lint
-npm run format
-
-# Type check
-npx tsc --noEmit
+# Start the API from its build output
+npm --workspace @hothotleads/api run start
 ```
 
 ## Architecture
 
+This is a Turborepo monorepo with apps under `apps/` and shared packages under `packages/`.
+
 ```
-src/
-├── main.ts                          # NestJS bootstrap
-├── app.module.ts                    # Root module wiring
-├── health.controller.ts             # GET /health
-├── config/
-│   └── configuration.ts            # All env vars typed
-├── common/
-│   └── types/                      # Shared TypeScript interfaces
-│       ├── product.types.ts         # ProductKnowledge, ICP, SalesChannel, etc.
-│       ├── lead.types.ts            # Lead, OutreachDraft, FeedbackEntry
-│       ├── message.types.ts         # IncomingMessage, OutgoingMessage
-│       └── schedule.types.ts        # Schedule
-├── agents/
-│   ├── base/base.agent.ts          # Abstract tool-use loop (extends this for every agent)
-│   ├── orchestrator/               # Entry point — routes messages to specialized agents
-│   ├── product-context/            # Fetches + summarizes Notion product knowledge
-│   ├── prospect-discovery/         # Discovers companies via Exa matching ICP
-│   ├── enrichment/                 # Deep-researches a company with Exa
-│   ├── scoring/                    # Scores leads 0–100 against ICP
-│   ├── outreach/                   # Drafts channel-specific personalized messages
-│   ├── signal-monitor/             # Monitors Sources for new GTM signals
-│   └── feedback/                   # Quality evaluation + Feedback Log writer
-├── channels/
-│   ├── telegram/                   # Webhook controller + send service
-│   └── whatsapp/                   # Webhook controller + Meta Cloud API
-├── integrations/
-│   ├── notion/
-│   │   ├── notion.service.ts       # Notion client + low-level helpers
-│   │   └── repositories/
-│   │       ├── products.repository.ts   # Navigates Knowledge workspace hierarchy
-│   │       ├── leads.repository.ts      # Generated Leads + Outreach Queue CRUD
-│   │       ├── signals.repository.ts    # Signals database CRUD
-│   │       ├── schedules.repository.ts  # Schedules database CRUD
-│   │       └── feedback.repository.ts   # Feedback Log CRUD
-│   └── exa/
-│       └── exa.service.ts          # search, findCompanies, researchCompany, monitorSignals
-└── scheduler/
-    └── scheduler.service.ts        # Loads schedules from Notion, registers CronJobs
+apps/
+├── api/                            # NestJS API + agent orchestration (@hothotleads/api)
+│   ├── package.json
+│   ├── tsconfig.json               # extends @hothotleads/config/tsconfig/nest.json
+│   ├── nest-cli.json
+│   ├── .env                        # runtime secrets (gitignored)
+│   └── src/
+│       ├── main.ts                 # NestJS bootstrap
+│       ├── app.module.ts           # Root module wiring
+│       ├── health.controller.ts    # GET /health
+│       ├── config/configuration.ts # All env vars typed
+│       ├── common/types/           # Shared TypeScript interfaces
+│       ├── agents/                 # BaseAgent + 8 specialized agents
+│       ├── channels/               # Telegram + WhatsApp webhook controllers
+│       ├── integrations/           # Exa / Tavily / Perplexity web-research clients
+│       ├── db/db.module.ts         # MikroORM wiring + repository providers
+│       └── scheduler/              # Cron-registration service (loads schedules from Postgres)
+└── web/                            # Vite + React operator UI (@hothotleads/web)
+    ├── package.json
+    ├── tsconfig.json               # extends @hothotleads/config/tsconfig/vite.json
+    ├── vite.config.ts
+    └── src/                        # pages, components, hooks
+
+packages/
+├── config/                         # Shared TSConfig / ESLint / Prettier bases (@hothotleads/config)
+│   ├── tsconfig/{base,nest,vite,library}.json
+│   ├── eslint/base.js
+│   └── prettier/index.js
+├── types/                          # Shared domain types (@hothotleads/types) — plain interfaces shared between api + web
+└── db/                             # Postgres schema + entities + repositories (@hothotleads/db)
+
+turbo.json                          # pipeline: build, dev, lint, typecheck, test, start
 ```
+
+**Dependency rule:** apps may depend on packages. Packages must not depend on apps. Apps must not import from sibling apps.
 
 ## Agent Architecture
 
@@ -87,7 +99,7 @@ src/
 | Agent | Role | Key Tools |
 |-------|------|-----------|
 | **OrchestratorAgent** | Entry point — parses intent, loads product context, routes to specialists | get_products, load_product_context, run_* |
-| **ProductContextAgent** | Fetches + summarizes all Notion knowledge for a product | get_product_knowledge |
+| **ProductContextAgent** | Loads + summarizes a product's knowledge (ICP, channels, sources, predefined prospects) from Postgres | get_product_knowledge |
 | **ProspectDiscoveryAgent** | Finds new companies matching ICP via Exa | search_companies, save_lead |
 | **EnrichmentAgent** | Deep-researches a company (news, funding, hiring, tech stack) | research_company, search_web, update_lead |
 | **ScoringAgent** | Scores leads 0–100 against ICP + signals | get_product_knowledge, update_lead_score |
@@ -96,29 +108,63 @@ src/
 | **FeedbackAgent** | Evaluates output quality (0–10) and writes to Feedback Log | get_recent_feedback, save_feedback |
 
 ### Feedback Loop
-Every significant output (lead batch, outreach draft) automatically triggers **FeedbackAgent** via `OrchestratorAgent.executeTool('run_feedback', ...)`. Feedback is stored in Notion `Output/[Product]/Feedback Log`. Run `/feedback-review` to surface patterns and ICP refinement suggestions.
+Every significant output (lead batch, outreach draft) automatically triggers **FeedbackAgent** via `OrchestratorAgent.executeTool('run_feedback', ...)`. Feedback is persisted in the `feedback_entries` table (scoped by `product_id`). Run `/feedback-review` to surface patterns and ICP refinement suggestions.
 
-## Notion Workspace Structure
+## Data Model
+
+Postgres is the single source of truth. Schema lives in [packages/db/src/entities/](packages/db/src/entities/).
 
 ```
-Workspace
-├── Knowledge/
-│   └── [Product Name]/               ← one page per product
-│         ├── General Information     (page — free text)
-│         ├── Predefined Prospects    (database)
-│         ├── Signals                 (database)
-│         ├── Sales Strategy          (page — free text)
-│         ├── Sales Channels          (page or database)
-│         ├── Pricing                 (page — free text)
-│         └── Sources                 (page or database)
-└── Output/
-    └── [Product Name]/
-          ├── Generated Leads         (database)
-          ├── Outreach Queue          (database)
-          └── Feedback Log            (database)
+Product (root of the GTM domain)
+├── ProductIcp                 1:1  — target industries, sizes, funding stages, geographies, notes
+├── ProductSalesChannel        1:N  — named outreach channels with templates
+├── ProductSource              1:N  — signal sources (news, social, databases…)
+├── PredefinedProspect         1:N  — seed companies for prospect discovery
+├── Lead                       1:N
+│     └── OutreachDraft        1:N  — drafts per lead, multiple channels
+├── Signal                     1:N  — buying intent / hiring / activity signals
+├── Schedule                   1:N  — recurring tasks delivered via Telegram/WhatsApp
+└── FeedbackEntry              1:N  — agent quality scores
 ```
 
-`ProductsRepository` navigates this hierarchy dynamically — no hardcoded database IDs per product. Only the top-level `NOTION_KNOWLEDGE_PAGE_ID` and `NOTION_OUTPUT_PAGE_ID` are needed in env.
+Product-owned tables cascade on delete. `leads(product_id, domain)` has a partial unique index (only when `domain IS NOT NULL`) to prevent dupes. UUID primary keys come from `pgcrypto.gen_random_uuid()`.
+
+Repositories in [packages/db/src/repositories/](packages/db/src/repositories/) wrap the `EntityManager` — `ProductsRepository`, `LeadsRepository`, `SignalsRepository`, `SchedulesRepository`, `FeedbackRepository`. Apps consume them as Nest providers via [apps/api/src/db/db.module.ts](apps/api/src/db/db.module.ts).
+
+## Local dev — database
+
+```bash
+docker compose up -d postgres                           # Postgres 16 on localhost:5434
+npm --workspace @hothotleads/db run db:migrate          # apply migrations
+```
+
+The API fails fast at boot if `DATABASE_URL` is missing or unreachable.
+
+## Product chats
+
+Each product has a single, persistent chat thread rooted on `product_chats` + `product_chat_messages`. Messages are append-only and store Anthropic-shaped `content_blocks` (text / tool_use / tool_result) as JSONB.
+
+- **Web chat surface:** `/products/:productId` Chat tab. `POST /products/:productId/chat/messages` returns Server-Sent Events (`message_start`, `text_delta`, `tool_use_start`, `tool_use_result`, `message_done`, `error`). The client renders text incrementally and discloses tool calls inline.
+- **Streaming agent:** [BaseAgent.runStream](apps/api/src/agents/base/base.agent.ts) maps the Claude Agent SDK's async iterator into the event types above. Non-streaming `run()` is a thin wrapper that drains the generator.
+- **Channel sync:** `ChatService.handleIncoming` is used by both Telegram and WhatsApp handlers. When `workspaces.sync_channel_chats = true` (default) and a product is resolved, the channel exchange is persisted to the same product thread with `source_channel` set to `telegram` or `whatsapp`.
+- **Product management:** `/api/products` — list / get / create / patch / delete. Delete cascades to leads, outreach drafts, signals, schedules, feedback, and chat messages via the DB FKs.
+- **Client disconnect:** the SSE handler continues the orchestrator run to completion even if the client aborts mid-stream, so the assistant message is always persisted in full. A subsequent `GET /products/:productId/chat` shows the complete reply.
+
+### Known scope calls
+
+- The Overview tab edits basics (name / generalInfo / salesStrategy / pricing). ICP, sales-channel, source, and predefined-prospect editing is **display-only in v1**; editing those nested collections comes in a follow-up.
+- Telegram/WhatsApp messages that don't resolve to a product fall back to running the orchestrator directly without persistence. A "product selection" convention for channels is a future concern.
+
+## Onboarding
+
+A fresh deploy has an empty database. The operator bootstraps the system via an in-app wizard at `/onboarding` (4 steps: workspace details → operator profile → channels → first product). Progress is persisted as `workspaces.onboarding_status` so reloads resume where you left off.
+
+- **Entities:** `Workspace` (singleton, enforced by a unique partial index on `singleton = TRUE`), `Operator`, `ChannelCredential`.
+- **Channel credentials** are stored encrypted at rest (AES-256-GCM, key = SHA-256 of `APP_SECRET_KEY`). The plaintext never leaves the server process; the API exposes only redacted `{ channel, configured, updatedAt }` views.
+- **Telegram** credentials are validated via a live `getMe` call before being saved. **WhatsApp** credentials pass a shallow shape check (full validation happens on first outbound message).
+- **State machine:** `pending → workspace_details → operator_profile → channels → first_product → completed`. Out-of-order submissions return `409 Conflict`.
+- **Admin reset:** `POST /onboarding/reset` with header `X-Admin-Token: $APP_SECRET_KEY` wipes the workspace + operator + channel rows. Not exposed in the web UI by design.
+- **Settings surface:** after onboarding, edits go through `GET/PATCH /settings` and the corresponding web page at `/settings`.
 
 ## Environment Variables
 
@@ -126,9 +172,11 @@ Workspace
 ANTHROPIC_API_KEY, CLAUDE_MODEL, CLAUDE_MODEL_HEAVY, CLAUDE_MODEL_FAST
 TELEGRAM_BOT_TOKEN, TELEGRAM_WEBHOOK_SECRET
 WHATSAPP_PHONE_NUMBER_ID, WHATSAPP_ACCESS_TOKEN, WHATSAPP_VERIFY_TOKEN
-NOTION_API_KEY, NOTION_KNOWLEDGE_PAGE_ID, NOTION_OUTPUT_PAGE_ID
-NOTION_SCHEDULES_DATABASE_ID   # flat schedules DB (not product-scoped)
-EXA_API_KEY
+DATABASE_URL                  # postgresql://user:pass@host:port/db — required
+DATABASE_SSL                  # true|false, default false
+MIKROORM_DEBUG                # true|false, default false
+APP_SECRET_KEY                # required, min 32 chars. Encrypts channel credentials + guards the onboarding reset endpoint. Generate: `openssl rand -hex 32`
+EXA_API_KEY, TAVILY_API_KEY, PERPLEXITY_API_KEY
 HOST, PORT, PUBLIC_URL, LOG_LEVEL
 ```
 
@@ -145,7 +193,7 @@ HOST, PORT, PUBLIC_URL, LOG_LEVEL
 ## Key Design Decisions
 
 - **`BaseAgent` is the only place the Anthropic SDK is called** — every specialized agent inherits the tool-use loop. To add a new agent: extend `BaseAgent`, define `systemPrompt`, `tools[]`, and `executeTool()`.
-- **Product context is lazy-loaded and cached** — `ProductsRepository` caches per `productName`. Call `invalidateCache(productName)` after editing Notion.
-- **Schedules survive restarts** — `SchedulerService` reads from Notion on `onApplicationBootstrap`. Registering a new schedule via chat saves to Notion and also registers the CronJob live.
+- **Product knowledge is loaded via a single query.** `ProductsRepository.getProduct(name)` returns the Product with its ICP, sales channels, sources, and predefined prospects populated in one round-trip. There is no in-process cache (Postgres reads are fast).
+- **Schedules survive restarts** — `SchedulerService.onApplicationBootstrap` loads `enabled=true` schedules from Postgres and registers each `CronJob`. Registering a new schedule via chat persists to the `schedules` table and live-registers the job.
 - **Feedback is automatic** — `OrchestratorAgent` always calls `run_feedback` after prospect discovery and outreach. This is intentional and should not be removed.
 - **WhatsApp `chatId` == phone number** — Unlike Telegram, there is no separate chat ID.

@@ -1,0 +1,53 @@
+{
+  "name": "@hothotleads/db",
+  "version": "0.1.0",
+  "description": "Postgres schema, entities, and repositories for HotHotLeads",
+  "private": true,
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./mikro-orm.config": {
+      "types": "./dist/mikro-orm.config.d.ts",
+      "default": "./dist/mikro-orm.config.js"
+    }
+  },
+  "files": [
+    "dist",
+    "src"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "lint": "eslint \"src/**/*.ts\"",
+    "typecheck": "tsc --noEmit",
+    "db:migrate": "mikro-orm migration:up",
+    "db:migrate:create": "mikro-orm migration:create",
+    "db:migrate:down": "mikro-orm migration:down",
+    "db:fresh": "mikro-orm migration:fresh"
+  },
+  "dependencies": {
+    "@hothotleads/types": "*",
+    "@mikro-orm/core": "^6.4.2",
+    "@mikro-orm/migrations": "^6.4.2",
+    "@mikro-orm/nestjs": "^6.1.1",
+    "@mikro-orm/postgresql": "^6.4.2",
+    "pg": "^8.13.1"
+  },
+  "devDependencies": {
+    "@hothotleads/config": "*",
+    "@mikro-orm/cli": "^6.4.2",
+    "@types/pg": "^8.11.10",
+    "typescript": "^5.6.3"
+  },
+  "mikro-orm": {
+    "useTsNode": true,
+    "configPaths": [
+      "./src/mikro-orm.config.ts",
+      "./dist/mikro-orm.config.js"
+    ]
+  }
+}

@@ -1,0 +1,33 @@
+import { Module } from '@nestjs/common';
+import { ConfigModule } from '@nestjs/config';
+
+import { IntegrationsModule } from '../integrations/integrations.module';
+import { DbModule } from '../db/db.module';
+import { OrchestratorAgent } from './orchestrator/orchestrator.agent';
+import { ProductContextAgent } from './product-context/product-context.agent';
+import { ProspectDiscoveryAgent } from './prospect-discovery/prospect-discovery.agent';
+import { EnrichmentAgent } from './enrichment/enrichment.agent';
+import { ScoringAgent } from './scoring/scoring.agent';
+import { OutreachAgent } from './outreach/outreach.agent';
+import { SignalMonitorAgent } from './signal-monitor/signal-monitor.agent';
+import { BuyingIntentAgent } from './buying-intent/buying-intent.agent';
+import { FeedbackAgent } from './feedback/feedback.agent';
+
+const AGENTS = [
+  OrchestratorAgent,
+  ProductContextAgent,
+  ProspectDiscoveryAgent,
+  EnrichmentAgent,
+  ScoringAgent,
+  OutreachAgent,
+  SignalMonitorAgent,
+  BuyingIntentAgent,
+  FeedbackAgent,
+];
+
+@Module({
+  imports: [ConfigModule, IntegrationsModule, DbModule],
+  providers: AGENTS,
+  exports: AGENTS,
+})
+export class AgentsModule {}

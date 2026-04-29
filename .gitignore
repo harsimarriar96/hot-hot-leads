@@ -1,6 +1,17 @@
-.env
 node_modules/
-dist/
-coverage/
+.env
+.env.local
 .DS_Store
 *.js.map
+
+# Build output
+apps/*/dist/
+packages/*/dist/
+apps/*/.next/
+coverage/
+
+# Turbo
+.turbo/
+
+# Editor/IDE
+*.tsbuildinfo

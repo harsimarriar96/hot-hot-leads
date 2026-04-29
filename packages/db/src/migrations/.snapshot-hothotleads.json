@@ -1,0 +1,5312 @@
+{
+  "namespaces": [
+    "public"
+  ],
+  "name": "public",
+  "tables": [
+    {
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": true,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": "gen_random_uuid()",
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "uuid"
+        },
+        "workspace_id": {
+          "name": "workspace_id",
+          "type": "uuid",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": true,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "uuid"
+        },
+        "channel": {
+          "name": "channel",
+          "type": "preferred_channel",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [
+            "telegram",
+            "whatsapp"
+          ],
+          "mappedType": "unknown",
+          "nativeEnumName": "preferred_channel"
+        },
+        "credentials_ciphertext": {
+          "name": "credentials_ciphertext",
+          "type": "bytea",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "blob"
+        },
+        "credentials_iv": {
+          "name": "credentials_iv",
+          "type": "bytea",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "blob"
+        },
+        "credentials_auth_tag": {
+          "name": "credentials_auth_tag",
+          "type": "bytea",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "blob"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamptz(6)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": 6,
+          "precision": null,
+          "scale": null,
+          "default": "now()",
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "datetime"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamptz(6)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": 6,
+          "precision": null,
+          "scale": null,
+          "default": "now()",
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "datetime"
+        }
+      },
+      "name": "channel_credentials",
+      "schema": "public",
+      "indexes": [
+        {
+          "columnNames": [
+            "id"
+          ],
+          "composite": false,
+          "constraint": false,
+          "keyName": "channel_credentials_pkey",
+          "unique": true,
+          "primary": true
+        },
+        {
+          "columnNames": [
+            "workspace_id",
+            "channel"
+          ],
+          "composite": true,
+          "constraint": true,
+          "keyName": "channel_credentials_workspace_channel_unique",
+          "unique": true,
+          "primary": false
+        }
+      ],
+      "checks": [],
+      "foreignKeys": {
+        "channel_credentials_workspace_id_foreign": {
+          "columnNames": [
+            "workspace_id"
+          ],
+          "constraintName": "channel_credentials_workspace_id_foreign",
+          "localTableName": "public.channel_credentials",
+          "referencedTableName": "public.workspaces",
+          "referencedColumnNames": [
+            "id"
+          ],
+          "updateRule": "cascade",
+          "deleteRule": "cascade"
+        }
+      },
+      "nativeEnums": {
+        "agent_model_tier": {
+          "name": "agent_model_tier",
+          "schema": "public",
+          "items": [
+            "fast",
+            "default",
+            "heavy"
+          ]
+        },
+        "agent_type": {
+          "name": "agent_type",
+          "schema": "public",
+          "items": [
+            "orchestrator",
+            "product-context",
+            "prospect-discovery",
+            "enrichment",
+            "scoring",
+            "outreach",
+            "signal-monitor",
+            "buying-intent",
+            "feedback"
+          ]
+        },
+        "chat_role": {
+          "name": "chat_role",
+          "schema": "public",
+          "items": [
+            "user",
+            "assistant",
+            "tool"
+          ]
+        },
+        "chat_source_channel": {
+          "name": "chat_source_channel",
+          "schema": "public",
+          "items": [
+            "web",
+            "telegram",
+            "whatsapp"
+          ]
+        },
+        "lead_status": {
+          "name": "lead_status",
+          "schema": "public",
+          "items": [
+            "new",
+            "enriched",
+            "scored",
+            "outreach_ready",
+            "contacted",
+            "qualified",
+            "disqualified"
+          ]
+        },
+        "onboarding_status": {
+          "name": "onboarding_status",
+          "schema": "public",
+          "items": [
+            "pending",
+            "workspace_details",
+            "operator_profile",
+            "channels",
+            "first_product",
+            "completed"
+          ]
+        },
+        "outreach_tone": {
+          "name": "outreach_tone",
+          "schema": "public",
+          "items": [
+            "formal",
+            "casual",
+            "friendly"
+          ]
+        },
+        "preferred_channel": {
+          "name": "preferred_channel",
+          "schema": "public",
+          "items": [
+            "telegram",
+            "whatsapp"
+          ]
+        },
+        "schedule_channel": {
+          "name": "schedule_channel",
+          "schema": "public",
+          "items": [
+            "telegram",
+            "whatsapp"
+          ]
+        },
+        "schedule_frequency": {
+          "name": "schedule_frequency",
+          "schema": "public",
+          "items": [
+            "hourly",
+            "daily",
+            "weekly",
+            "custom"
+          ]
+        },
+        "signal_source": {
+          "name": "signal_source",
+          "schema": "public",
+          "items": [
+            "exa",
+            "tavily",
+            "perplexity",
+            "manual"
+          ]
+        },
+        "signal_type": {
+          "name": "signal_type",
+          "schema": "public",
+          "items": [
+            "content_social",
+            "hiring_org",
+            "company_activity",
+            "regulatory",
+            "buying_intent",
+            "funding",
+            "hiring",
+            "news",
+            "product_launch",
+            "leadership_change"
+          ]
+        },
+        "source_type": {
+          "name": "source_type",
+          "schema": "public",
+          "items": [
+            "news",
+            "newsletter",
+            "database",
+            "social",
+            "other"
+          ]
+        }
+      },
+      "comment": null
+    },
+    {
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": true,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": "gen_random_uuid()",
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "uuid"
+        },
+        "product_id": {
+          "name": "product_id",
+          "type": "uuid",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "uuid"
+        },
+        "agent_type": {
+          "name": "agent_type",
+          "type": "agent_type",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [
+            "orchestrator",
+            "product-context",
+            "prospect-discovery",
+            "enrichment",
+            "scoring",
+            "outreach",
+            "signal-monitor",
+            "buying-intent",
+            "feedback"
+          ],
+          "mappedType": "unknown",
+          "nativeEnumName": "agent_type"
+        },
+        "input_summary": {
+          "name": "input_summary",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "text"
+        },
+        "output_summary": {
+          "name": "output_summary",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "text"
+        },
+        "quality_score": {
+          "name": "quality_score",
+          "type": "int4",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": 32,
+          "scale": 0,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "integer"
+        },
+        "issues": {
+          "name": "issues",
+          "type": "text[]",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": "'{}'",
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "array"
+        },
+        "suggestions": {
+          "name": "suggestions",
+          "type": "text[]",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": "'{}'",
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "array"
+        },
+        "overall_assessment": {
+          "name": "overall_assessment",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "text"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamptz(6)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": 6,
+          "precision": null,
+          "scale": null,
+          "default": "now()",
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "datetime"
+        }
+      },
+      "name": "feedback_entries",
+      "schema": "public",
+      "indexes": [
+        {
+          "columnNames": [
+            "id"
+          ],
+          "composite": false,
+          "constraint": false,
+          "keyName": "feedback_entries_pkey",
+          "unique": true,
+          "primary": true
+        },
+        {
+          "columnNames": [
+            "product_id",
+            "created_at"
+          ],
+          "composite": true,
+          "constraint": false,
+          "keyName": "feedback_product_created_at_idx",
+          "unique": false,
+          "primary": false
+        }
+      ],
+      "checks": [],
+      "foreignKeys": {
+        "feedback_entries_product_id_foreign": {
+          "columnNames": [
+            "product_id"
+          ],
+          "constraintName": "feedback_entries_product_id_foreign",
+          "localTableName": "public.feedback_entries",
+          "referencedTableName": "public.products",
+          "referencedColumnNames": [
+            "id"
+          ],
+          "updateRule": "cascade",
+          "deleteRule": "cascade"
+        }
+      },
+      "nativeEnums": {
+        "agent_model_tier": {
+          "name": "agent_model_tier",
+          "schema": "public",
+          "items": [
+            "fast",
+            "default",
+            "heavy"
+          ]
+        },
+        "agent_type": {
+          "name": "agent_type",
+          "schema": "public",
+          "items": [
+            "orchestrator",
+            "product-context",
+            "prospect-discovery",
+            "enrichment",
+            "scoring",
+            "outreach",
+            "signal-monitor",
+            "buying-intent",
+            "feedback"
+          ]
+        },
+        "chat_role": {
+          "name": "chat_role",
+          "schema": "public",
+          "items": [
+            "user",
+            "assistant",
+            "tool"
+          ]
+        },
+        "chat_source_channel": {
+          "name": "chat_source_channel",
+          "schema": "public",
+          "items": [
+            "web",
+            "telegram",
+            "whatsapp"
+          ]
+        },
+        "lead_status": {
+          "name": "lead_status",
+          "schema": "public",
+          "items": [
+            "new",
+            "enriched",
+            "scored",
+            "outreach_ready",
+            "contacted",
+            "qualified",
+            "disqualified"
+          ]
+        },
+        "onboarding_status": {
+          "name": "onboarding_status",
+          "schema": "public",
+          "items": [
+            "pending",
+            "workspace_details",
+            "operator_profile",
+            "channels",
+            "first_product",
+            "completed"
+          ]
+        },
+        "outreach_tone": {
+          "name": "outreach_tone",
+          "schema": "public",
+          "items": [
+            "formal",
+            "casual",
+            "friendly"
+          ]
+        },
+        "preferred_channel": {
+          "name": "preferred_channel",
+          "schema": "public",
+          "items": [
+            "telegram",
+            "whatsapp"
+          ]
+        },
+        "schedule_channel": {
+          "name": "schedule_channel",
+          "schema": "public",
+          "items": [
+            "telegram",
+            "whatsapp"
+          ]
+        },
+        "schedule_frequency": {
+          "name": "schedule_frequency",
+          "schema": "public",
+          "items": [
+            "hourly",
+            "daily",
+            "weekly",
+            "custom"
+          ]
+        },
+        "signal_source": {
+          "name": "signal_source",
+          "schema": "public",
+          "items": [
+            "exa",
+            "tavily",
+            "perplexity",
+            "manual"
+          ]
+        },
+        "signal_type": {
+          "name": "signal_type",
+          "schema": "public",
+          "items": [
+            "content_social",
+            "hiring_org",
+            "company_activity",
+            "regulatory",
+            "buying_intent",
+            "funding",
+            "hiring",
+            "news",
+            "product_launch",
+            "leadership_change"
+          ]
+        },
+        "source_type": {
+          "name": "source_type",
+          "schema": "public",
+          "items": [
+            "news",
+            "newsletter",
+            "database",
+            "social",
+            "other"
+          ]
+        }
+      },
+      "comment": null
+    },
+    {
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": true,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": "gen_random_uuid()",
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "uuid"
+        },
+        "product_id": {
+          "name": "product_id",
+          "type": "uuid",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": true,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "uuid"
+        },
+        "company": {
+          "name": "company",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "text"
+        },
+        "domain": {
+          "name": "domain",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "text"
+        },
+        "industry": {
+          "name": "industry",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "text"
+        },
+        "company_size": {
+          "name": "company_size",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "text"
+        },
+        "funding_stage": {
+          "name": "funding_stage",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "text"
+        },
+        "location": {
+          "name": "location",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "text"
+        },
+        "tech_stack": {
+          "name": "tech_stack",
+          "type": "text[]",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": "'{}'",
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "array"
+        },
+        "contact_name": {
+          "name": "contact_name",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "text"
+        },
+        "contact_title": {
+          "name": "contact_title",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "text"
+        },
+        "contact_email": {
+          "name": "contact_email",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "text"
+        },
+        "linkedin_url": {
+          "name": "linkedin_url",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "text"
+        },
+        "score": {
+          "name": "score",
+          "type": "int4",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": null,
+          "precision": 32,
+          "scale": 0,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "integer"
+        },
+        "buying_intent": {
+          "name": "buying_intent",
+          "type": "int4",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": null,
+          "precision": 32,
+          "scale": 0,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "integer"
+        },
+        "icp_fit_reason": {
+          "name": "icp_fit_reason",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "text"
+        },
+        "signal_summary": {
+          "name": "signal_summary",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "text"
+        },
+        "status": {
+          "name": "status",
+          "type": "lead_status",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": "'new'",
+          "comment": null,
+          "enumItems": [
+            "new",
+            "enriched",
+            "scored",
+            "outreach_ready",
+            "contacted",
+            "qualified",
+            "disqualified"
+          ],
+          "mappedType": "unknown",
+          "nativeEnumName": "lead_status"
+        },
+        "signals": {
+          "name": "signals",
+          "type": "text[]",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": "'{}'",
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "array"
+        },
+        "enrichment_data": {
+          "name": "enrichment_data",
+          "type": "jsonb",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "json"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamptz(6)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": 6,
+          "precision": null,
+          "scale": null,
+          "default": "now()",
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "datetime"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamptz(6)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": 6,
+          "precision": null,
+          "scale": null,
+          "default": "now()",
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "datetime"
+        }
+      },
+      "name": "leads",
+      "schema": "public",
+      "indexes": [
+        {
+          "columnNames": [
+            "id"
+          ],
+          "composite": false,
+          "constraint": false,
+          "keyName": "leads_pkey",
+          "unique": true,
+          "primary": true
+        },
+        {
+          "columnNames": [
+            "product_id",
+            "domain"
+          ],
+          "composite": true,
+          "constraint": false,
+          "keyName": "leads_product_domain_unique",
+          "unique": true,
+          "primary": false,
+          "expression": "CREATE UNIQUE INDEX leads_product_domain_unique ON public.leads USING btree (product_id, domain) WHERE (domain IS NOT NULL)"
+        }
+      ],
+      "checks": [],
+      "foreignKeys": {
+        "leads_product_id_foreign": {
+          "columnNames": [
+            "product_id"
+          ],
+          "constraintName": "leads_product_id_foreign",
+          "localTableName": "public.leads",
+          "referencedTableName": "public.products",
+          "referencedColumnNames": [
+            "id"
+          ],
+          "updateRule": "cascade",
+          "deleteRule": "cascade"
+        }
+      },
+      "nativeEnums": {
+        "agent_model_tier": {
+          "name": "agent_model_tier",
+          "schema": "public",
+          "items": [
+            "fast",
+            "default",
+            "heavy"
+          ]
+        },
+        "agent_type": {
+          "name": "agent_type",
+          "schema": "public",
+          "items": [
+            "orchestrator",
+            "product-context",
+            "prospect-discovery",
+            "enrichment",
+            "scoring",
+            "outreach",
+            "signal-monitor",
+            "buying-intent",
+            "feedback"
+          ]
+        },
+        "chat_role": {
+          "name": "chat_role",
+          "schema": "public",
+          "items": [
+            "user",
+            "assistant",
+            "tool"
+          ]
+        },
+        "chat_source_channel": {
+          "name": "chat_source_channel",
+          "schema": "public",
+          "items": [
+            "web",
+            "telegram",
+            "whatsapp"
+          ]
+        },
+        "lead_status": {
+          "name": "lead_status",
+          "schema": "public",
+          "items": [
+            "new",
+            "enriched",
+            "scored",
+            "outreach_ready",
+            "contacted",
+            "qualified",
+            "disqualified"
+          ]
+        },
+        "onboarding_status": {
+          "name": "onboarding_status",
+          "schema": "public",
+          "items": [
+            "pending",
+            "workspace_details",
+            "operator_profile",
+            "channels",
+            "first_product",
+            "completed"
+          ]
+        },
+        "outreach_tone": {
+          "name": "outreach_tone",
+          "schema": "public",
+          "items": [
+            "formal",
+            "casual",
+            "friendly"
+          ]
+        },
+        "preferred_channel": {
+          "name": "preferred_channel",
+          "schema": "public",
+          "items": [
+            "telegram",
+            "whatsapp"
+          ]
+        },
+        "schedule_channel": {
+          "name": "schedule_channel",
+          "schema": "public",
+          "items": [
+            "telegram",
+            "whatsapp"
+          ]
+        },
+        "schedule_frequency": {
+          "name": "schedule_frequency",
+          "schema": "public",
+          "items": [
+            "hourly",
+            "daily",
+            "weekly",
+            "custom"
+          ]
+        },
+        "signal_source": {
+          "name": "signal_source",
+          "schema": "public",
+          "items": [
+            "exa",
+            "tavily",
+            "perplexity",
+            "manual"
+          ]
+        },
+        "signal_type": {
+          "name": "signal_type",
+          "schema": "public",
+          "items": [
+            "content_social",
+            "hiring_org",
+            "company_activity",
+            "regulatory",
+            "buying_intent",
+            "funding",
+            "hiring",
+            "news",
+            "product_launch",
+            "leadership_change"
+          ]
+        },
+        "source_type": {
+          "name": "source_type",
+          "schema": "public",
+          "items": [
+            "news",
+            "newsletter",
+            "database",
+            "social",
+            "other"
+          ]
+        }
+      },
+      "comment": null
+    },
+    {
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": true,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": "gen_random_uuid()",
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "uuid"
+        },
+        "workspace_id": {
+          "name": "workspace_id",
+          "type": "uuid",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "uuid"
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "text"
+        },
+        "email": {
+          "name": "email",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": true,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "text"
+        },
+        "preferred_channel": {
+          "name": "preferred_channel",
+          "type": "preferred_channel",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [
+            "telegram",
+            "whatsapp"
+          ],
+          "mappedType": "unknown",
+          "nativeEnumName": "preferred_channel"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamptz(6)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": 6,
+          "precision": null,
+          "scale": null,
+          "default": "now()",
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "datetime"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamptz(6)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": 6,
+          "precision": null,
+          "scale": null,
+          "default": "now()",
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "datetime"
+        }
+      },
+      "name": "operators",
+      "schema": "public",
+      "indexes": [
+        {
+          "columnNames": [
+            "email"
+          ],
+          "composite": false,
+          "constraint": true,
+          "keyName": "operators_email_unique",
+          "unique": true,
+          "primary": false
+        },
+        {
+          "columnNames": [
+            "id"
+          ],
+          "composite": false,
+          "constraint": false,
+          "keyName": "operators_pkey",
+          "unique": true,
+          "primary": true
+        }
+      ],
+      "checks": [],
+      "foreignKeys": {
+        "operators_workspace_id_foreign": {
+          "columnNames": [
+            "workspace_id"
+          ],
+          "constraintName": "operators_workspace_id_foreign",
+          "localTableName": "public.operators",
+          "referencedTableName": "public.workspaces",
+          "referencedColumnNames": [
+            "id"
+          ],
+          "updateRule": "cascade",
+          "deleteRule": "cascade"
+        }
+      },
+      "nativeEnums": {
+        "agent_model_tier": {
+          "name": "agent_model_tier",
+          "schema": "public",
+          "items": [
+            "fast",
+            "default",
+            "heavy"
+          ]
+        },
+        "agent_type": {
+          "name": "agent_type",
+          "schema": "public",
+          "items": [
+            "orchestrator",
+            "product-context",
+            "prospect-discovery",
+            "enrichment",
+            "scoring",
+            "outreach",
+            "signal-monitor",
+            "buying-intent",
+            "feedback"
+          ]
+        },
+        "chat_role": {
+          "name": "chat_role",
+          "schema": "public",
+          "items": [
+            "user",
+            "assistant",
+            "tool"
+          ]
+        },
+        "chat_source_channel": {
+          "name": "chat_source_channel",
+          "schema": "public",
+          "items": [
+            "web",
+            "telegram",
+            "whatsapp"
+          ]
+        },
+        "lead_status": {
+          "name": "lead_status",
+          "schema": "public",
+          "items": [
+            "new",
+            "enriched",
+            "scored",
+            "outreach_ready",
+            "contacted",
+            "qualified",
+            "disqualified"
+          ]
+        },
+        "onboarding_status": {
+          "name": "onboarding_status",
+          "schema": "public",
+          "items": [
+            "pending",
+            "workspace_details",
+            "operator_profile",
+            "channels",
+            "first_product",
+            "completed"
+          ]
+        },
+        "outreach_tone": {
+          "name": "outreach_tone",
+          "schema": "public",
+          "items": [
+            "formal",
+            "casual",
+            "friendly"
+          ]
+        },
+        "preferred_channel": {
+          "name": "preferred_channel",
+          "schema": "public",
+          "items": [
+            "telegram",
+            "whatsapp"
+          ]
+        },
+        "schedule_channel": {
+          "name": "schedule_channel",
+          "schema": "public",
+          "items": [
+            "telegram",
+            "whatsapp"
+          ]
+        },
+        "schedule_frequency": {
+          "name": "schedule_frequency",
+          "schema": "public",
+          "items": [
+            "hourly",
+            "daily",
+            "weekly",
+            "custom"
+          ]
+        },
+        "signal_source": {
+          "name": "signal_source",
+          "schema": "public",
+          "items": [
+            "exa",
+            "tavily",
+            "perplexity",
+            "manual"
+          ]
+        },
+        "signal_type": {
+          "name": "signal_type",
+          "schema": "public",
+          "items": [
+            "content_social",
+            "hiring_org",
+            "company_activity",
+            "regulatory",
+            "buying_intent",
+            "funding",
+            "hiring",
+            "news",
+            "product_launch",
+            "leadership_change"
+          ]
+        },
+        "source_type": {
+          "name": "source_type",
+          "schema": "public",
+          "items": [
+            "news",
+            "newsletter",
+            "database",
+            "social",
+            "other"
+          ]
+        }
+      },
+      "comment": null
+    },
+    {
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": true,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": "gen_random_uuid()",
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "uuid"
+        },
+        "lead_id": {
+          "name": "lead_id",
+          "type": "uuid",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "uuid"
+        },
+        "channel": {
+          "name": "channel",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "text"
+        },
+        "subject": {
+          "name": "subject",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "text"
+        },
+        "body": {
+          "name": "body",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "text"
+        },
+        "tone": {
+          "name": "tone",
+          "type": "outreach_tone",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": "'friendly'",
+          "comment": null,
+          "enumItems": [
+            "formal",
+            "casual",
+            "friendly"
+          ],
+          "mappedType": "unknown",
+          "nativeEnumName": "outreach_tone"
+        },
+        "generated_at": {
+          "name": "generated_at",
+          "type": "timestamptz(6)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": 6,
+          "precision": null,
+          "scale": null,
+          "default": "now()",
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "datetime"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamptz(6)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": 6,
+          "precision": null,
+          "scale": null,
+          "default": "now()",
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "datetime"
+        }
+      },
+      "name": "outreach_drafts",
+      "schema": "public",
+      "indexes": [
+        {
+          "columnNames": [
+            "id"
+          ],
+          "composite": false,
+          "constraint": false,
+          "keyName": "outreach_drafts_pkey",
+          "unique": true,
+          "primary": true
+        }
+      ],
+      "checks": [],
+      "foreignKeys": {
+        "outreach_drafts_lead_id_foreign": {
+          "columnNames": [
+            "lead_id"
+          ],
+          "constraintName": "outreach_drafts_lead_id_foreign",
+          "localTableName": "public.outreach_drafts",
+          "referencedTableName": "public.leads",
+          "referencedColumnNames": [
+            "id"
+          ],
+          "updateRule": "cascade",
+          "deleteRule": "cascade"
+        }
+      },
+      "nativeEnums": {
+        "agent_model_tier": {
+          "name": "agent_model_tier",
+          "schema": "public",
+          "items": [
+            "fast",
+            "default",
+            "heavy"
+          ]
+        },
+        "agent_type": {
+          "name": "agent_type",
+          "schema": "public",
+          "items": [
+            "orchestrator",
+            "product-context",
+            "prospect-discovery",
+            "enrichment",
+            "scoring",
+            "outreach",
+            "signal-monitor",
+            "buying-intent",
+            "feedback"
+          ]
+        },
+        "chat_role": {
+          "name": "chat_role",
+          "schema": "public",
+          "items": [
+            "user",
+            "assistant",
+            "tool"
+          ]
+        },
+        "chat_source_channel": {
+          "name": "chat_source_channel",
+          "schema": "public",
+          "items": [
+            "web",
+            "telegram",
+            "whatsapp"
+          ]
+        },
+        "lead_status": {
+          "name": "lead_status",
+          "schema": "public",
+          "items": [
+            "new",
+            "enriched",
+            "scored",
+            "outreach_ready",
+            "contacted",
+            "qualified",
+            "disqualified"
+          ]
+        },
+        "onboarding_status": {
+          "name": "onboarding_status",
+          "schema": "public",
+          "items": [
+            "pending",
+            "workspace_details",
+            "operator_profile",
+            "channels",
+            "first_product",
+            "completed"
+          ]
+        },
+        "outreach_tone": {
+          "name": "outreach_tone",
+          "schema": "public",
+          "items": [
+            "formal",
+            "casual",
+            "friendly"
+          ]
+        },
+        "preferred_channel": {
+          "name": "preferred_channel",
+          "schema": "public",
+          "items": [
+            "telegram",
+            "whatsapp"
+          ]
+        },
+        "schedule_channel": {
+          "name": "schedule_channel",
+          "schema": "public",
+          "items": [
+            "telegram",
+            "whatsapp"
+          ]
+        },
+        "schedule_frequency": {
+          "name": "schedule_frequency",
+          "schema": "public",
+          "items": [
+            "hourly",
+            "daily",
+            "weekly",
+            "custom"
+          ]
+        },
+        "signal_source": {
+          "name": "signal_source",
+          "schema": "public",
+          "items": [
+            "exa",
+            "tavily",
+            "perplexity",
+            "manual"
+          ]
+        },
+        "signal_type": {
+          "name": "signal_type",
+          "schema": "public",
+          "items": [
+            "content_social",
+            "hiring_org",
+            "company_activity",
+            "regulatory",
+            "buying_intent",
+            "funding",
+            "hiring",
+            "news",
+            "product_launch",
+            "leadership_change"
+          ]
+        },
+        "source_type": {
+          "name": "source_type",
+          "schema": "public",
+          "items": [
+            "news",
+            "newsletter",
+            "database",
+            "social",
+            "other"
+          ]
+        }
+      },
+      "comment": null
+    },
+    {
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": true,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": "gen_random_uuid()",
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "uuid"
+        },
+        "product_id": {
+          "name": "product_id",
+          "type": "uuid",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "uuid"
+        },
+        "company": {
+          "name": "company",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "text"
+        },
+        "domain": {
+          "name": "domain",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "text"
+        },
+        "industry": {
+          "name": "industry",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "text"
+        },
+        "company_size": {
+          "name": "company_size",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "text"
+        },
+        "funding_stage": {
+          "name": "funding_stage",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "text"
+        },
+        "icp_fit_notes": {
+          "name": "icp_fit_notes",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "text"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamptz(6)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": 6,
+          "precision": null,
+          "scale": null,
+          "default": "now()",
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "datetime"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamptz(6)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": 6,
+          "precision": null,
+          "scale": null,
+          "default": "now()",
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "datetime"
+        }
+      },
+      "name": "predefined_prospects",
+      "schema": "public",
+      "indexes": [
+        {
+          "columnNames": [
+            "id"
+          ],
+          "composite": false,
+          "constraint": false,
+          "keyName": "predefined_prospects_pkey",
+          "unique": true,
+          "primary": true
+        }
+      ],
+      "checks": [],
+      "foreignKeys": {
+        "predefined_prospects_product_id_foreign": {
+          "columnNames": [
+            "product_id"
+          ],
+          "constraintName": "predefined_prospects_product_id_foreign",
+          "localTableName": "public.predefined_prospects",
+          "referencedTableName": "public.products",
+          "referencedColumnNames": [
+            "id"
+          ],
+          "updateRule": "cascade",
+          "deleteRule": "cascade"
+        }
+      },
+      "nativeEnums": {
+        "agent_model_tier": {
+          "name": "agent_model_tier",
+          "schema": "public",
+          "items": [
+            "fast",
+            "default",
+            "heavy"
+          ]
+        },
+        "agent_type": {
+          "name": "agent_type",
+          "schema": "public",
+          "items": [
+            "orchestrator",
+            "product-context",
+            "prospect-discovery",
+            "enrichment",
+            "scoring",
+            "outreach",
+            "signal-monitor",
+            "buying-intent",
+            "feedback"
+          ]
+        },
+        "chat_role": {
+          "name": "chat_role",
+          "schema": "public",
+          "items": [
+            "user",
+            "assistant",
+            "tool"
+          ]
+        },
+        "chat_source_channel": {
+          "name": "chat_source_channel",
+          "schema": "public",
+          "items": [
+            "web",
+            "telegram",
+            "whatsapp"
+          ]
+        },
+        "lead_status": {
+          "name": "lead_status",
+          "schema": "public",
+          "items": [
+            "new",
+            "enriched",
+            "scored",
+            "outreach_ready",
+            "contacted",
+            "qualified",
+            "disqualified"
+          ]
+        },
+        "onboarding_status": {
+          "name": "onboarding_status",
+          "schema": "public",
+          "items": [
+            "pending",
+            "workspace_details",
+            "operator_profile",
+            "channels",
+            "first_product",
+            "completed"
+          ]
+        },
+        "outreach_tone": {
+          "name": "outreach_tone",
+          "schema": "public",
+          "items": [
+            "formal",
+            "casual",
+            "friendly"
+          ]
+        },
+        "preferred_channel": {
+          "name": "preferred_channel",
+          "schema": "public",
+          "items": [
+            "telegram",
+            "whatsapp"
+          ]
+        },
+        "schedule_channel": {
+          "name": "schedule_channel",
+          "schema": "public",
+          "items": [
+            "telegram",
+            "whatsapp"
+          ]
+        },
+        "schedule_frequency": {
+          "name": "schedule_frequency",
+          "schema": "public",
+          "items": [
+            "hourly",
+            "daily",
+            "weekly",
+            "custom"
+          ]
+        },
+        "signal_source": {
+          "name": "signal_source",
+          "schema": "public",
+          "items": [
+            "exa",
+            "tavily",
+            "perplexity",
+            "manual"
+          ]
+        },
+        "signal_type": {
+          "name": "signal_type",
+          "schema": "public",
+          "items": [
+            "content_social",
+            "hiring_org",
+            "company_activity",
+            "regulatory",
+            "buying_intent",
+            "funding",
+            "hiring",
+            "news",
+            "product_launch",
+            "leadership_change"
+          ]
+        },
+        "source_type": {
+          "name": "source_type",
+          "schema": "public",
+          "items": [
+            "news",
+            "newsletter",
+            "database",
+            "social",
+            "other"
+          ]
+        }
+      },
+      "comment": null
+    },
+    {
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": true,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": "gen_random_uuid()",
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "uuid"
+        },
+        "chat_id": {
+          "name": "chat_id",
+          "type": "uuid",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "uuid"
+        },
+        "role": {
+          "name": "role",
+          "type": "chat_role",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [
+            "user",
+            "assistant",
+            "tool"
+          ],
+          "mappedType": "unknown",
+          "nativeEnumName": "chat_role"
+        },
+        "content_blocks": {
+          "name": "content_blocks",
+          "type": "jsonb",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "json"
+        },
+        "source_channel": {
+          "name": "source_channel",
+          "type": "chat_source_channel",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": "'web'",
+          "comment": null,
+          "enumItems": [
+            "web",
+            "telegram",
+            "whatsapp"
+          ],
+          "mappedType": "unknown",
+          "nativeEnumName": "chat_source_channel"
+        },
+        "source_ref": {
+          "name": "source_ref",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "text"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamptz(6)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": 6,
+          "precision": null,
+          "scale": null,
+          "default": "now()",
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "datetime"
+        }
+      },
+      "name": "product_chat_messages",
+      "schema": "public",
+      "indexes": [
+        {
+          "columnNames": [
+            "chat_id",
+            "created_at"
+          ],
+          "composite": true,
+          "constraint": false,
+          "keyName": "product_chat_messages_chat_created_idx",
+          "unique": false,
+          "primary": false
+        },
+        {
+          "columnNames": [
+            "id"
+          ],
+          "composite": false,
+          "constraint": false,
+          "keyName": "product_chat_messages_pkey",
+          "unique": true,
+          "primary": true
+        }
+      ],
+      "checks": [],
+      "foreignKeys": {
+        "product_chat_messages_chat_id_foreign": {
+          "columnNames": [
+            "chat_id"
+          ],
+          "constraintName": "product_chat_messages_chat_id_foreign",
+          "localTableName": "public.product_chat_messages",
+          "referencedTableName": "public.product_chats",
+          "referencedColumnNames": [
+            "id"
+          ],
+          "updateRule": "cascade",
+          "deleteRule": "cascade"
+        }
+      },
+      "nativeEnums": {
+        "agent_model_tier": {
+          "name": "agent_model_tier",
+          "schema": "public",
+          "items": [
+            "fast",
+            "default",
+            "heavy"
+          ]
+        },
+        "agent_type": {
+          "name": "agent_type",
+          "schema": "public",
+          "items": [
+            "orchestrator",
+            "product-context",
+            "prospect-discovery",
+            "enrichment",
+            "scoring",
+            "outreach",
+            "signal-monitor",
+            "buying-intent",
+            "feedback"
+          ]
+        },
+        "chat_role": {
+          "name": "chat_role",
+          "schema": "public",
+          "items": [
+            "user",
+            "assistant",
+            "tool"
+          ]
+        },
+        "chat_source_channel": {
+          "name": "chat_source_channel",
+          "schema": "public",
+          "items": [
+            "web",
+            "telegram",
+            "whatsapp"
+          ]
+        },
+        "lead_status": {
+          "name": "lead_status",
+          "schema": "public",
+          "items": [
+            "new",
+            "enriched",
+            "scored",
+            "outreach_ready",
+            "contacted",
+            "qualified",
+            "disqualified"
+          ]
+        },
+        "onboarding_status": {
+          "name": "onboarding_status",
+          "schema": "public",
+          "items": [
+            "pending",
+            "workspace_details",
+            "operator_profile",
+            "channels",
+            "first_product",
+            "completed"
+          ]
+        },
+        "outreach_tone": {
+          "name": "outreach_tone",
+          "schema": "public",
+          "items": [
+            "formal",
+            "casual",
+            "friendly"
+          ]
+        },
+        "preferred_channel": {
+          "name": "preferred_channel",
+          "schema": "public",
+          "items": [
+            "telegram",
+            "whatsapp"
+          ]
+        },
+        "schedule_channel": {
+          "name": "schedule_channel",
+          "schema": "public",
+          "items": [
+            "telegram",
+            "whatsapp"
+          ]
+        },
+        "schedule_frequency": {
+          "name": "schedule_frequency",
+          "schema": "public",
+          "items": [
+            "hourly",
+            "daily",
+            "weekly",
+            "custom"
+          ]
+        },
+        "signal_source": {
+          "name": "signal_source",
+          "schema": "public",
+          "items": [
+            "exa",
+            "tavily",
+            "perplexity",
+            "manual"
+          ]
+        },
+        "signal_type": {
+          "name": "signal_type",
+          "schema": "public",
+          "items": [
+            "content_social",
+            "hiring_org",
+            "company_activity",
+            "regulatory",
+            "buying_intent",
+            "funding",
+            "hiring",
+            "news",
+            "product_launch",
+            "leadership_change"
+          ]
+        },
+        "source_type": {
+          "name": "source_type",
+          "schema": "public",
+          "items": [
+            "news",
+            "newsletter",
+            "database",
+            "social",
+            "other"
+          ]
+        }
+      },
+      "comment": null
+    },
+    {
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": true,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": "gen_random_uuid()",
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "uuid"
+        },
+        "product_id": {
+          "name": "product_id",
+          "type": "uuid",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": true,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "uuid"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamptz(6)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": 6,
+          "precision": null,
+          "scale": null,
+          "default": "now()",
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "datetime"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamptz(6)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": 6,
+          "precision": null,
+          "scale": null,
+          "default": "now()",
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "datetime"
+        }
+      },
+      "name": "product_chats",
+      "schema": "public",
+      "indexes": [
+        {
+          "columnNames": [
+            "id"
+          ],
+          "composite": false,
+          "constraint": false,
+          "keyName": "product_chats_pkey",
+          "unique": true,
+          "primary": true
+        },
+        {
+          "columnNames": [
+            "product_id"
+          ],
+          "composite": false,
+          "constraint": true,
+          "keyName": "product_chats_product_id_unique",
+          "unique": true,
+          "primary": false
+        }
+      ],
+      "checks": [],
+      "foreignKeys": {
+        "product_chats_product_id_foreign": {
+          "columnNames": [
+            "product_id"
+          ],
+          "constraintName": "product_chats_product_id_foreign",
+          "localTableName": "public.product_chats",
+          "referencedTableName": "public.products",
+          "referencedColumnNames": [
+            "id"
+          ],
+          "updateRule": "cascade",
+          "deleteRule": "cascade"
+        }
+      },
+      "nativeEnums": {
+        "agent_model_tier": {
+          "name": "agent_model_tier",
+          "schema": "public",
+          "items": [
+            "fast",
+            "default",
+            "heavy"
+          ]
+        },
+        "agent_type": {
+          "name": "agent_type",
+          "schema": "public",
+          "items": [
+            "orchestrator",
+            "product-context",
+            "prospect-discovery",
+            "enrichment",
+            "scoring",
+            "outreach",
+            "signal-monitor",
+            "buying-intent",
+            "feedback"
+          ]
+        },
+        "chat_role": {
+          "name": "chat_role",
+          "schema": "public",
+          "items": [
+            "user",
+            "assistant",
+            "tool"
+          ]
+        },
+        "chat_source_channel": {
+          "name": "chat_source_channel",
+          "schema": "public",
+          "items": [
+            "web",
+            "telegram",
+            "whatsapp"
+          ]
+        },
+        "lead_status": {
+          "name": "lead_status",
+          "schema": "public",
+          "items": [
+            "new",
+            "enriched",
+            "scored",
+            "outreach_ready",
+            "contacted",
+            "qualified",
+            "disqualified"
+          ]
+        },
+        "onboarding_status": {
+          "name": "onboarding_status",
+          "schema": "public",
+          "items": [
+            "pending",
+            "workspace_details",
+            "operator_profile",
+            "channels",
+            "first_product",
+            "completed"
+          ]
+        },
+        "outreach_tone": {
+          "name": "outreach_tone",
+          "schema": "public",
+          "items": [
+            "formal",
+            "casual",
+            "friendly"
+          ]
+        },
+        "preferred_channel": {
+          "name": "preferred_channel",
+          "schema": "public",
+          "items": [
+            "telegram",
+            "whatsapp"
+          ]
+        },
+        "schedule_channel": {
+          "name": "schedule_channel",
+          "schema": "public",
+          "items": [
+            "telegram",
+            "whatsapp"
+          ]
+        },
+        "schedule_frequency": {
+          "name": "schedule_frequency",
+          "schema": "public",
+          "items": [
+            "hourly",
+            "daily",
+            "weekly",
+            "custom"
+          ]
+        },
+        "signal_source": {
+          "name": "signal_source",
+          "schema": "public",
+          "items": [
+            "exa",
+            "tavily",
+            "perplexity",
+            "manual"
+          ]
+        },
+        "signal_type": {
+          "name": "signal_type",
+          "schema": "public",
+          "items": [
+            "content_social",
+            "hiring_org",
+            "company_activity",
+            "regulatory",
+            "buying_intent",
+            "funding",
+            "hiring",
+            "news",
+            "product_launch",
+            "leadership_change"
+          ]
+        },
+        "source_type": {
+          "name": "source_type",
+          "schema": "public",
+          "items": [
+            "news",
+            "newsletter",
+            "database",
+            "social",
+            "other"
+          ]
+        }
+      },
+      "comment": null
+    },
+    {
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": true,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": "gen_random_uuid()",
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "uuid"
+        },
+        "product_id": {
+          "name": "product_id",
+          "type": "uuid",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": true,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "uuid"
+        },
+        "target_industries": {
+          "name": "target_industries",
+          "type": "text[]",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": "'{}'",
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "array"
+        },
+        "company_sizes": {
+          "name": "company_sizes",
+          "type": "text[]",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": "'{}'",
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "array"
+        },
+        "funding_stages": {
+          "name": "funding_stages",
+          "type": "text[]",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": "'{}'",
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "array"
+        },
+        "geographies": {
+          "name": "geographies",
+          "type": "text[]",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": "'{}'",
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "array"
+        },
+        "buyer_personas": {
+          "name": "buyer_personas",
+          "type": "jsonb",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "json"
+        },
+        "notes": {
+          "name": "notes",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "text"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamptz(6)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": 6,
+          "precision": null,
+          "scale": null,
+          "default": "now()",
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "datetime"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamptz(6)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": 6,
+          "precision": null,
+          "scale": null,
+          "default": "now()",
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "datetime"
+        }
+      },
+      "name": "product_icp",
+      "schema": "public",
+      "indexes": [
+        {
+          "columnNames": [
+            "id"
+          ],
+          "composite": false,
+          "constraint": false,
+          "keyName": "product_icp_pkey",
+          "unique": true,
+          "primary": true
+        },
+        {
+          "columnNames": [
+            "product_id"
+          ],
+          "composite": false,
+          "constraint": true,
+          "keyName": "product_icp_product_id_unique",
+          "unique": true,
+          "primary": false
+        }
+      ],
+      "checks": [],
+      "foreignKeys": {
+        "product_icp_product_id_foreign": {
+          "columnNames": [
+            "product_id"
+          ],
+          "constraintName": "product_icp_product_id_foreign",
+          "localTableName": "public.product_icp",
+          "referencedTableName": "public.products",
+          "referencedColumnNames": [
+            "id"
+          ],
+          "updateRule": "cascade",
+          "deleteRule": "no action"
+        }
+      },
+      "nativeEnums": {
+        "agent_model_tier": {
+          "name": "agent_model_tier",
+          "schema": "public",
+          "items": [
+            "fast",
+            "default",
+            "heavy"
+          ]
+        },
+        "agent_type": {
+          "name": "agent_type",
+          "schema": "public",
+          "items": [
+            "orchestrator",
+            "product-context",
+            "prospect-discovery",
+            "enrichment",
+            "scoring",
+            "outreach",
+            "signal-monitor",
+            "buying-intent",
+            "feedback"
+          ]
+        },
+        "chat_role": {
+          "name": "chat_role",
+          "schema": "public",
+          "items": [
+            "user",
+            "assistant",
+            "tool"
+          ]
+        },
+        "chat_source_channel": {
+          "name": "chat_source_channel",
+          "schema": "public",
+          "items": [
+            "web",
+            "telegram",
+            "whatsapp"
+          ]
+        },
+        "lead_status": {
+          "name": "lead_status",
+          "schema": "public",
+          "items": [
+            "new",
+            "enriched",
+            "scored",
+            "outreach_ready",
+            "contacted",
+            "qualified",
+            "disqualified"
+          ]
+        },
+        "onboarding_status": {
+          "name": "onboarding_status",
+          "schema": "public",
+          "items": [
+            "pending",
+            "workspace_details",
+            "operator_profile",
+            "channels",
+            "first_product",
+            "completed"
+          ]
+        },
+        "outreach_tone": {
+          "name": "outreach_tone",
+          "schema": "public",
+          "items": [
+            "formal",
+            "casual",
+            "friendly"
+          ]
+        },
+        "preferred_channel": {
+          "name": "preferred_channel",
+          "schema": "public",
+          "items": [
+            "telegram",
+            "whatsapp"
+          ]
+        },
+        "schedule_channel": {
+          "name": "schedule_channel",
+          "schema": "public",
+          "items": [
+            "telegram",
+            "whatsapp"
+          ]
+        },
+        "schedule_frequency": {
+          "name": "schedule_frequency",
+          "schema": "public",
+          "items": [
+            "hourly",
+            "daily",
+            "weekly",
+            "custom"
+          ]
+        },
+        "signal_source": {
+          "name": "signal_source",
+          "schema": "public",
+          "items": [
+            "exa",
+            "tavily",
+            "perplexity",
+            "manual"
+          ]
+        },
+        "signal_type": {
+          "name": "signal_type",
+          "schema": "public",
+          "items": [
+            "content_social",
+            "hiring_org",
+            "company_activity",
+            "regulatory",
+            "buying_intent",
+            "funding",
+            "hiring",
+            "news",
+            "product_launch",
+            "leadership_change"
+          ]
+        },
+        "source_type": {
+          "name": "source_type",
+          "schema": "public",
+          "items": [
+            "news",
+            "newsletter",
+            "database",
+            "social",
+            "other"
+          ]
+        }
+      },
+      "comment": null
+    },
+    {
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": true,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": "gen_random_uuid()",
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "uuid"
+        },
+        "product_id": {
+          "name": "product_id",
+          "type": "uuid",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "uuid"
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "text"
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "text"
+        },
+        "template": {
+          "name": "template",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "text"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamptz(6)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": 6,
+          "precision": null,
+          "scale": null,
+          "default": "now()",
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "datetime"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamptz(6)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": 6,
+          "precision": null,
+          "scale": null,
+          "default": "now()",
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "datetime"
+        }
+      },
+      "name": "product_sales_channels",
+      "schema": "public",
+      "indexes": [
+        {
+          "columnNames": [
+            "id"
+          ],
+          "composite": false,
+          "constraint": false,
+          "keyName": "product_sales_channels_pkey",
+          "unique": true,
+          "primary": true
+        }
+      ],
+      "checks": [],
+      "foreignKeys": {
+        "product_sales_channels_product_id_foreign": {
+          "columnNames": [
+            "product_id"
+          ],
+          "constraintName": "product_sales_channels_product_id_foreign",
+          "localTableName": "public.product_sales_channels",
+          "referencedTableName": "public.products",
+          "referencedColumnNames": [
+            "id"
+          ],
+          "updateRule": "cascade",
+          "deleteRule": "cascade"
+        }
+      },
+      "nativeEnums": {
+        "agent_model_tier": {
+          "name": "agent_model_tier",
+          "schema": "public",
+          "items": [
+            "fast",
+            "default",
+            "heavy"
+          ]
+        },
+        "agent_type": {
+          "name": "agent_type",
+          "schema": "public",
+          "items": [
+            "orchestrator",
+            "product-context",
+            "prospect-discovery",
+            "enrichment",
+            "scoring",
+            "outreach",
+            "signal-monitor",
+            "buying-intent",
+            "feedback"
+          ]
+        },
+        "chat_role": {
+          "name": "chat_role",
+          "schema": "public",
+          "items": [
+            "user",
+            "assistant",
+            "tool"
+          ]
+        },
+        "chat_source_channel": {
+          "name": "chat_source_channel",
+          "schema": "public",
+          "items": [
+            "web",
+            "telegram",
+            "whatsapp"
+          ]
+        },
+        "lead_status": {
+          "name": "lead_status",
+          "schema": "public",
+          "items": [
+            "new",
+            "enriched",
+            "scored",
+            "outreach_ready",
+            "contacted",
+            "qualified",
+            "disqualified"
+          ]
+        },
+        "onboarding_status": {
+          "name": "onboarding_status",
+          "schema": "public",
+          "items": [
+            "pending",
+            "workspace_details",
+            "operator_profile",
+            "channels",
+            "first_product",
+            "completed"
+          ]
+        },
+        "outreach_tone": {
+          "name": "outreach_tone",
+          "schema": "public",
+          "items": [
+            "formal",
+            "casual",
+            "friendly"
+          ]
+        },
+        "preferred_channel": {
+          "name": "preferred_channel",
+          "schema": "public",
+          "items": [
+            "telegram",
+            "whatsapp"
+          ]
+        },
+        "schedule_channel": {
+          "name": "schedule_channel",
+          "schema": "public",
+          "items": [
+            "telegram",
+            "whatsapp"
+          ]
+        },
+        "schedule_frequency": {
+          "name": "schedule_frequency",
+          "schema": "public",
+          "items": [
+            "hourly",
+            "daily",
+            "weekly",
+            "custom"
+          ]
+        },
+        "signal_source": {
+          "name": "signal_source",
+          "schema": "public",
+          "items": [
+            "exa",
+            "tavily",
+            "perplexity",
+            "manual"
+          ]
+        },
+        "signal_type": {
+          "name": "signal_type",
+          "schema": "public",
+          "items": [
+            "content_social",
+            "hiring_org",
+            "company_activity",
+            "regulatory",
+            "buying_intent",
+            "funding",
+            "hiring",
+            "news",
+            "product_launch",
+            "leadership_change"
+          ]
+        },
+        "source_type": {
+          "name": "source_type",
+          "schema": "public",
+          "items": [
+            "news",
+            "newsletter",
+            "database",
+            "social",
+            "other"
+          ]
+        }
+      },
+      "comment": null
+    },
+    {
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": true,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": "gen_random_uuid()",
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "uuid"
+        },
+        "product_id": {
+          "name": "product_id",
+          "type": "uuid",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "uuid"
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "text"
+        },
+        "url": {
+          "name": "url",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "text"
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "text"
+        },
+        "type": {
+          "name": "type",
+          "type": "source_type",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": "'other'",
+          "comment": null,
+          "enumItems": [
+            "news",
+            "newsletter",
+            "database",
+            "social",
+            "other"
+          ],
+          "mappedType": "unknown",
+          "nativeEnumName": "source_type"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamptz(6)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": 6,
+          "precision": null,
+          "scale": null,
+          "default": "now()",
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "datetime"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamptz(6)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": 6,
+          "precision": null,
+          "scale": null,
+          "default": "now()",
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "datetime"
+        }
+      },
+      "name": "product_sources",
+      "schema": "public",
+      "indexes": [
+        {
+          "columnNames": [
+            "id"
+          ],
+          "composite": false,
+          "constraint": false,
+          "keyName": "product_sources_pkey",
+          "unique": true,
+          "primary": true
+        }
+      ],
+      "checks": [],
+      "foreignKeys": {
+        "product_sources_product_id_foreign": {
+          "columnNames": [
+            "product_id"
+          ],
+          "constraintName": "product_sources_product_id_foreign",
+          "localTableName": "public.product_sources",
+          "referencedTableName": "public.products",
+          "referencedColumnNames": [
+            "id"
+          ],
+          "updateRule": "cascade",
+          "deleteRule": "cascade"
+        }
+      },
+      "nativeEnums": {
+        "agent_model_tier": {
+          "name": "agent_model_tier",
+          "schema": "public",
+          "items": [
+            "fast",
+            "default",
+            "heavy"
+          ]
+        },
+        "agent_type": {
+          "name": "agent_type",
+          "schema": "public",
+          "items": [
+            "orchestrator",
+            "product-context",
+            "prospect-discovery",
+            "enrichment",
+            "scoring",
+            "outreach",
+            "signal-monitor",
+            "buying-intent",
+            "feedback"
+          ]
+        },
+        "chat_role": {
+          "name": "chat_role",
+          "schema": "public",
+          "items": [
+            "user",
+            "assistant",
+            "tool"
+          ]
+        },
+        "chat_source_channel": {
+          "name": "chat_source_channel",
+          "schema": "public",
+          "items": [
+            "web",
+            "telegram",
+            "whatsapp"
+          ]
+        },
+        "lead_status": {
+          "name": "lead_status",
+          "schema": "public",
+          "items": [
+            "new",
+            "enriched",
+            "scored",
+            "outreach_ready",
+            "contacted",
+            "qualified",
+            "disqualified"
+          ]
+        },
+        "onboarding_status": {
+          "name": "onboarding_status",
+          "schema": "public",
+          "items": [
+            "pending",
+            "workspace_details",
+            "operator_profile",
+            "channels",
+            "first_product",
+            "completed"
+          ]
+        },
+        "outreach_tone": {
+          "name": "outreach_tone",
+          "schema": "public",
+          "items": [
+            "formal",
+            "casual",
+            "friendly"
+          ]
+        },
+        "preferred_channel": {
+          "name": "preferred_channel",
+          "schema": "public",
+          "items": [
+            "telegram",
+            "whatsapp"
+          ]
+        },
+        "schedule_channel": {
+          "name": "schedule_channel",
+          "schema": "public",
+          "items": [
+            "telegram",
+            "whatsapp"
+          ]
+        },
+        "schedule_frequency": {
+          "name": "schedule_frequency",
+          "schema": "public",
+          "items": [
+            "hourly",
+            "daily",
+            "weekly",
+            "custom"
+          ]
+        },
+        "signal_source": {
+          "name": "signal_source",
+          "schema": "public",
+          "items": [
+            "exa",
+            "tavily",
+            "perplexity",
+            "manual"
+          ]
+        },
+        "signal_type": {
+          "name": "signal_type",
+          "schema": "public",
+          "items": [
+            "content_social",
+            "hiring_org",
+            "company_activity",
+            "regulatory",
+            "buying_intent",
+            "funding",
+            "hiring",
+            "news",
+            "product_launch",
+            "leadership_change"
+          ]
+        },
+        "source_type": {
+          "name": "source_type",
+          "schema": "public",
+          "items": [
+            "news",
+            "newsletter",
+            "database",
+            "social",
+            "other"
+          ]
+        }
+      },
+      "comment": null
+    },
+    {
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": true,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": "gen_random_uuid()",
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "uuid"
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": true,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "text"
+        },
+        "slug": {
+          "name": "slug",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": true,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "text"
+        },
+        "general_info": {
+          "name": "general_info",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "text"
+        },
+        "sales_strategy": {
+          "name": "sales_strategy",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "text"
+        },
+        "pricing": {
+          "name": "pricing",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "text"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamptz(6)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": 6,
+          "precision": null,
+          "scale": null,
+          "default": "now()",
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "datetime"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamptz(6)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": 6,
+          "precision": null,
+          "scale": null,
+          "default": "now()",
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "datetime"
+        },
+        "agent_model_tier": {
+          "name": "agent_model_tier",
+          "type": "agent_model_tier",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": "'default'",
+          "comment": null,
+          "enumItems": [
+            "fast",
+            "default",
+            "heavy"
+          ],
+          "mappedType": "unknown",
+          "nativeEnumName": "agent_model_tier"
+        },
+        "agent_extra_instructions": {
+          "name": "agent_extra_instructions",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "text"
+        },
+        "icp_strictness": {
+          "name": "icp_strictness",
+          "type": "int4",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": 32,
+          "scale": 0,
+          "default": "60",
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "integer"
+        }
+      },
+      "name": "products",
+      "schema": "public",
+      "indexes": [
+        {
+          "columnNames": [
+            "name"
+          ],
+          "composite": false,
+          "constraint": true,
+          "keyName": "products_name_unique",
+          "unique": true,
+          "primary": false
+        },
+        {
+          "columnNames": [
+            "id"
+          ],
+          "composite": false,
+          "constraint": false,
+          "keyName": "products_pkey",
+          "unique": true,
+          "primary": true
+        },
+        {
+          "columnNames": [
+            "slug"
+          ],
+          "composite": false,
+          "constraint": true,
+          "keyName": "products_slug_unique",
+          "unique": true,
+          "primary": false
+        }
+      ],
+      "checks": [
+        {
+          "name": "products_icp_strictness_check",
+          "columnName": "icp_strictness",
+          "definition": "CHECK (((icp_strictness >= 0) AND (icp_strictness <= 100)))",
+          "expression": "(icp_strictness >= 0) AND (icp_strictness <= 100)"
+        }
+      ],
+      "foreignKeys": {},
+      "nativeEnums": {
+        "agent_model_tier": {
+          "name": "agent_model_tier",
+          "schema": "public",
+          "items": [
+            "fast",
+            "default",
+            "heavy"
+          ]
+        },
+        "agent_type": {
+          "name": "agent_type",
+          "schema": "public",
+          "items": [
+            "orchestrator",
+            "product-context",
+            "prospect-discovery",
+            "enrichment",
+            "scoring",
+            "outreach",
+            "signal-monitor",
+            "buying-intent",
+            "feedback"
+          ]
+        },
+        "chat_role": {
+          "name": "chat_role",
+          "schema": "public",
+          "items": [
+            "user",
+            "assistant",
+            "tool"
+          ]
+        },
+        "chat_source_channel": {
+          "name": "chat_source_channel",
+          "schema": "public",
+          "items": [
+            "web",
+            "telegram",
+            "whatsapp"
+          ]
+        },
+        "lead_status": {
+          "name": "lead_status",
+          "schema": "public",
+          "items": [
+            "new",
+            "enriched",
+            "scored",
+            "outreach_ready",
+            "contacted",
+            "qualified",
+            "disqualified"
+          ]
+        },
+        "onboarding_status": {
+          "name": "onboarding_status",
+          "schema": "public",
+          "items": [
+            "pending",
+            "workspace_details",
+            "operator_profile",
+            "channels",
+            "first_product",
+            "completed"
+          ]
+        },
+        "outreach_tone": {
+          "name": "outreach_tone",
+          "schema": "public",
+          "items": [
+            "formal",
+            "casual",
+            "friendly"
+          ]
+        },
+        "preferred_channel": {
+          "name": "preferred_channel",
+          "schema": "public",
+          "items": [
+            "telegram",
+            "whatsapp"
+          ]
+        },
+        "schedule_channel": {
+          "name": "schedule_channel",
+          "schema": "public",
+          "items": [
+            "telegram",
+            "whatsapp"
+          ]
+        },
+        "schedule_frequency": {
+          "name": "schedule_frequency",
+          "schema": "public",
+          "items": [
+            "hourly",
+            "daily",
+            "weekly",
+            "custom"
+          ]
+        },
+        "signal_source": {
+          "name": "signal_source",
+          "schema": "public",
+          "items": [
+            "exa",
+            "tavily",
+            "perplexity",
+            "manual"
+          ]
+        },
+        "signal_type": {
+          "name": "signal_type",
+          "schema": "public",
+          "items": [
+            "content_social",
+            "hiring_org",
+            "company_activity",
+            "regulatory",
+            "buying_intent",
+            "funding",
+            "hiring",
+            "news",
+            "product_launch",
+            "leadership_change"
+          ]
+        },
+        "source_type": {
+          "name": "source_type",
+          "schema": "public",
+          "items": [
+            "news",
+            "newsletter",
+            "database",
+            "social",
+            "other"
+          ]
+        }
+      },
+      "comment": null
+    },
+    {
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": true,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": "gen_random_uuid()",
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "uuid"
+        },
+        "product_id": {
+          "name": "product_id",
+          "type": "uuid",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "uuid"
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "text"
+        },
+        "task_prompt": {
+          "name": "task_prompt",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "text"
+        },
+        "frequency": {
+          "name": "frequency",
+          "type": "schedule_frequency",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [
+            "hourly",
+            "daily",
+            "weekly",
+            "custom"
+          ],
+          "mappedType": "unknown",
+          "nativeEnumName": "schedule_frequency"
+        },
+        "cron_expression": {
+          "name": "cron_expression",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "text"
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "text"
+        },
+        "chat_id": {
+          "name": "chat_id",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "text"
+        },
+        "channel": {
+          "name": "channel",
+          "type": "schedule_channel",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [
+            "telegram",
+            "whatsapp"
+          ],
+          "mappedType": "unknown",
+          "nativeEnumName": "schedule_channel"
+        },
+        "task_payload": {
+          "name": "task_payload",
+          "type": "jsonb",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "json"
+        },
+        "enabled": {
+          "name": "enabled",
+          "type": "bool",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": "true",
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "boolean"
+        },
+        "last_run_at": {
+          "name": "last_run_at",
+          "type": "timestamptz(6)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": 6,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "datetime"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamptz(6)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": 6,
+          "precision": null,
+          "scale": null,
+          "default": "now()",
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "datetime"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamptz(6)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": 6,
+          "precision": null,
+          "scale": null,
+          "default": "now()",
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "datetime"
+        }
+      },
+      "name": "schedules",
+      "schema": "public",
+      "indexes": [
+        {
+          "columnNames": [
+            "id"
+          ],
+          "composite": false,
+          "constraint": false,
+          "keyName": "schedules_pkey",
+          "unique": true,
+          "primary": true
+        }
+      ],
+      "checks": [],
+      "foreignKeys": {
+        "schedules_product_id_foreign": {
+          "columnNames": [
+            "product_id"
+          ],
+          "constraintName": "schedules_product_id_foreign",
+          "localTableName": "public.schedules",
+          "referencedTableName": "public.products",
+          "referencedColumnNames": [
+            "id"
+          ],
+          "updateRule": "cascade",
+          "deleteRule": "set null"
+        }
+      },
+      "nativeEnums": {
+        "agent_model_tier": {
+          "name": "agent_model_tier",
+          "schema": "public",
+          "items": [
+            "fast",
+            "default",
+            "heavy"
+          ]
+        },
+        "agent_type": {
+          "name": "agent_type",
+          "schema": "public",
+          "items": [
+            "orchestrator",
+            "product-context",
+            "prospect-discovery",
+            "enrichment",
+            "scoring",
+            "outreach",
+            "signal-monitor",
+            "buying-intent",
+            "feedback"
+          ]
+        },
+        "chat_role": {
+          "name": "chat_role",
+          "schema": "public",
+          "items": [
+            "user",
+            "assistant",
+            "tool"
+          ]
+        },
+        "chat_source_channel": {
+          "name": "chat_source_channel",
+          "schema": "public",
+          "items": [
+            "web",
+            "telegram",
+            "whatsapp"
+          ]
+        },
+        "lead_status": {
+          "name": "lead_status",
+          "schema": "public",
+          "items": [
+            "new",
+            "enriched",
+            "scored",
+            "outreach_ready",
+            "contacted",
+            "qualified",
+            "disqualified"
+          ]
+        },
+        "onboarding_status": {
+          "name": "onboarding_status",
+          "schema": "public",
+          "items": [
+            "pending",
+            "workspace_details",
+            "operator_profile",
+            "channels",
+            "first_product",
+            "completed"
+          ]
+        },
+        "outreach_tone": {
+          "name": "outreach_tone",
+          "schema": "public",
+          "items": [
+            "formal",
+            "casual",
+            "friendly"
+          ]
+        },
+        "preferred_channel": {
+          "name": "preferred_channel",
+          "schema": "public",
+          "items": [
+            "telegram",
+            "whatsapp"
+          ]
+        },
+        "schedule_channel": {
+          "name": "schedule_channel",
+          "schema": "public",
+          "items": [
+            "telegram",
+            "whatsapp"
+          ]
+        },
+        "schedule_frequency": {
+          "name": "schedule_frequency",
+          "schema": "public",
+          "items": [
+            "hourly",
+            "daily",
+            "weekly",
+            "custom"
+          ]
+        },
+        "signal_source": {
+          "name": "signal_source",
+          "schema": "public",
+          "items": [
+            "exa",
+            "tavily",
+            "perplexity",
+            "manual"
+          ]
+        },
+        "signal_type": {
+          "name": "signal_type",
+          "schema": "public",
+          "items": [
+            "content_social",
+            "hiring_org",
+            "company_activity",
+            "regulatory",
+            "buying_intent",
+            "funding",
+            "hiring",
+            "news",
+            "product_launch",
+            "leadership_change"
+          ]
+        },
+        "source_type": {
+          "name": "source_type",
+          "schema": "public",
+          "items": [
+            "news",
+            "newsletter",
+            "database",
+            "social",
+            "other"
+          ]
+        }
+      },
+      "comment": null
+    },
+    {
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": true,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": "gen_random_uuid()",
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "uuid"
+        },
+        "product_id": {
+          "name": "product_id",
+          "type": "uuid",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "uuid"
+        },
+        "type": {
+          "name": "type",
+          "type": "signal_type",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [
+            "content_social",
+            "hiring_org",
+            "company_activity",
+            "regulatory",
+            "buying_intent",
+            "funding",
+            "hiring",
+            "news",
+            "product_launch",
+            "leadership_change"
+          ],
+          "mappedType": "unknown",
+          "nativeEnumName": "signal_type"
+        },
+        "source": {
+          "name": "source",
+          "type": "signal_source",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [
+            "exa",
+            "tavily",
+            "perplexity",
+            "manual"
+          ],
+          "mappedType": "unknown",
+          "nativeEnumName": "signal_source"
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "text"
+        },
+        "company": {
+          "name": "company",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "text"
+        },
+        "source_url": {
+          "name": "source_url",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "text"
+        },
+        "relevance_score": {
+          "name": "relevance_score",
+          "type": "int4",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": null,
+          "precision": 32,
+          "scale": 0,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "integer"
+        },
+        "detected_at": {
+          "name": "detected_at",
+          "type": "timestamptz(6)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": 6,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "datetime"
+        },
+        "expires_at": {
+          "name": "expires_at",
+          "type": "timestamptz(6)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": 6,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "datetime"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamptz(6)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": 6,
+          "precision": null,
+          "scale": null,
+          "default": "now()",
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "datetime"
+        }
+      },
+      "name": "signals",
+      "schema": "public",
+      "indexes": [
+        {
+          "columnNames": [
+            "id"
+          ],
+          "composite": false,
+          "constraint": false,
+          "keyName": "signals_pkey",
+          "unique": true,
+          "primary": true
+        },
+        {
+          "columnNames": [
+            "product_id",
+            "detected_at"
+          ],
+          "composite": true,
+          "constraint": false,
+          "keyName": "signals_product_detected_at_idx",
+          "unique": false,
+          "primary": false
+        }
+      ],
+      "checks": [],
+      "foreignKeys": {
+        "signals_product_id_foreign": {
+          "columnNames": [
+            "product_id"
+          ],
+          "constraintName": "signals_product_id_foreign",
+          "localTableName": "public.signals",
+          "referencedTableName": "public.products",
+          "referencedColumnNames": [
+            "id"
+          ],
+          "updateRule": "cascade",
+          "deleteRule": "cascade"
+        }
+      },
+      "nativeEnums": {
+        "agent_model_tier": {
+          "name": "agent_model_tier",
+          "schema": "public",
+          "items": [
+            "fast",
+            "default",
+            "heavy"
+          ]
+        },
+        "agent_type": {
+          "name": "agent_type",
+          "schema": "public",
+          "items": [
+            "orchestrator",
+            "product-context",
+            "prospect-discovery",
+            "enrichment",
+            "scoring",
+            "outreach",
+            "signal-monitor",
+            "buying-intent",
+            "feedback"
+          ]
+        },
+        "chat_role": {
+          "name": "chat_role",
+          "schema": "public",
+          "items": [
+            "user",
+            "assistant",
+            "tool"
+          ]
+        },
+        "chat_source_channel": {
+          "name": "chat_source_channel",
+          "schema": "public",
+          "items": [
+            "web",
+            "telegram",
+            "whatsapp"
+          ]
+        },
+        "lead_status": {
+          "name": "lead_status",
+          "schema": "public",
+          "items": [
+            "new",
+            "enriched",
+            "scored",
+            "outreach_ready",
+            "contacted",
+            "qualified",
+            "disqualified"
+          ]
+        },
+        "onboarding_status": {
+          "name": "onboarding_status",
+          "schema": "public",
+          "items": [
+            "pending",
+            "workspace_details",
+            "operator_profile",
+            "channels",
+            "first_product",
+            "completed"
+          ]
+        },
+        "outreach_tone": {
+          "name": "outreach_tone",
+          "schema": "public",
+          "items": [
+            "formal",
+            "casual",
+            "friendly"
+          ]
+        },
+        "preferred_channel": {
+          "name": "preferred_channel",
+          "schema": "public",
+          "items": [
+            "telegram",
+            "whatsapp"
+          ]
+        },
+        "schedule_channel": {
+          "name": "schedule_channel",
+          "schema": "public",
+          "items": [
+            "telegram",
+            "whatsapp"
+          ]
+        },
+        "schedule_frequency": {
+          "name": "schedule_frequency",
+          "schema": "public",
+          "items": [
+            "hourly",
+            "daily",
+            "weekly",
+            "custom"
+          ]
+        },
+        "signal_source": {
+          "name": "signal_source",
+          "schema": "public",
+          "items": [
+            "exa",
+            "tavily",
+            "perplexity",
+            "manual"
+          ]
+        },
+        "signal_type": {
+          "name": "signal_type",
+          "schema": "public",
+          "items": [
+            "content_social",
+            "hiring_org",
+            "company_activity",
+            "regulatory",
+            "buying_intent",
+            "funding",
+            "hiring",
+            "news",
+            "product_launch",
+            "leadership_change"
+          ]
+        },
+        "source_type": {
+          "name": "source_type",
+          "schema": "public",
+          "items": [
+            "news",
+            "newsletter",
+            "database",
+            "social",
+            "other"
+          ]
+        }
+      },
+      "comment": null
+    },
+    {
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": true,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": "gen_random_uuid()",
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "uuid"
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "text"
+        },
+        "timezone": {
+          "name": "timezone",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": "'UTC'",
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "text"
+        },
+        "default_currency": {
+          "name": "default_currency",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": "'USD'",
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "text"
+        },
+        "onboarding_status": {
+          "name": "onboarding_status",
+          "type": "onboarding_status",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": "'pending'",
+          "comment": null,
+          "enumItems": [
+            "pending",
+            "workspace_details",
+            "operator_profile",
+            "channels",
+            "first_product",
+            "completed"
+          ],
+          "mappedType": "unknown",
+          "nativeEnumName": "onboarding_status"
+        },
+        "singleton": {
+          "name": "singleton",
+          "type": "bool",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": true,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": "true",
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "boolean"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamptz(6)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": 6,
+          "precision": null,
+          "scale": null,
+          "default": "now()",
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "datetime"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamptz(6)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": 6,
+          "precision": null,
+          "scale": null,
+          "default": "now()",
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "datetime"
+        },
+        "sync_channel_chats": {
+          "name": "sync_channel_chats",
+          "type": "bool",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": "true",
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "boolean"
+        }
+      },
+      "name": "workspaces",
+      "schema": "public",
+      "indexes": [
+        {
+          "columnNames": [
+            "id"
+          ],
+          "composite": false,
+          "constraint": false,
+          "keyName": "workspaces_pkey",
+          "unique": true,
+          "primary": true
+        },
+        {
+          "columnNames": [
+            "singleton"
+          ],
+          "composite": false,
+          "constraint": false,
+          "keyName": "workspaces_singleton_unique",
+          "unique": true,
+          "primary": false,
+          "expression": "CREATE UNIQUE INDEX workspaces_singleton_unique ON public.workspaces USING btree (singleton) WHERE (singleton = true)"
+        }
+      ],
+      "checks": [],
+      "foreignKeys": {},
+      "nativeEnums": {
+        "agent_model_tier": {
+          "name": "agent_model_tier",
+          "schema": "public",
+          "items": [
+            "fast",
+            "default",
+            "heavy"
+          ]
+        },
+        "agent_type": {
+          "name": "agent_type",
+          "schema": "public",
+          "items": [
+            "orchestrator",
+            "product-context",
+            "prospect-discovery",
+            "enrichment",
+            "scoring",
+            "outreach",
+            "signal-monitor",
+            "buying-intent",
+            "feedback"
+          ]
+        },
+        "chat_role": {
+          "name": "chat_role",
+          "schema": "public",
+          "items": [
+            "user",
+            "assistant",
+            "tool"
+          ]
+        },
+        "chat_source_channel": {
+          "name": "chat_source_channel",
+          "schema": "public",
+          "items": [
+            "web",
+            "telegram",
+            "whatsapp"
+          ]
+        },
+        "lead_status": {
+          "name": "lead_status",
+          "schema": "public",
+          "items": [
+            "new",
+            "enriched",
+            "scored",
+            "outreach_ready",
+            "contacted",
+            "qualified",
+            "disqualified"
+          ]
+        },
+        "onboarding_status": {
+          "name": "onboarding_status",
+          "schema": "public",
+          "items": [
+            "pending",
+            "workspace_details",
+            "operator_profile",
+            "channels",
+            "first_product",
+            "completed"
+          ]
+        },
+        "outreach_tone": {
+          "name": "outreach_tone",
+          "schema": "public",
+          "items": [
+            "formal",
+            "casual",
+            "friendly"
+          ]
+        },
+        "preferred_channel": {
+          "name": "preferred_channel",
+          "schema": "public",
+          "items": [
+            "telegram",
+            "whatsapp"
+          ]
+        },
+        "schedule_channel": {
+          "name": "schedule_channel",
+          "schema": "public",
+          "items": [
+            "telegram",
+            "whatsapp"
+          ]
+        },
+        "schedule_frequency": {
+          "name": "schedule_frequency",
+          "schema": "public",
+          "items": [
+            "hourly",
+            "daily",
+            "weekly",
+            "custom"
+          ]
+        },
+        "signal_source": {
+          "name": "signal_source",
+          "schema": "public",
+          "items": [
+            "exa",
+            "tavily",
+            "perplexity",
+            "manual"
+          ]
+        },
+        "signal_type": {
+          "name": "signal_type",
+          "schema": "public",
+          "items": [
+            "content_social",
+            "hiring_org",
+            "company_activity",
+            "regulatory",
+            "buying_intent",
+            "funding",
+            "hiring",
+            "news",
+            "product_launch",
+            "leadership_change"
+          ]
+        },
+        "source_type": {
+          "name": "source_type",
+          "schema": "public",
+          "items": [
+            "news",
+            "newsletter",
+            "database",
+            "social",
+            "other"
+          ]
+        }
+      },
+      "comment": null
+    }
+  ],
+  "nativeEnums": {
+    "agent_model_tier": {
+      "name": "agent_model_tier",
+      "schema": "public",
+      "items": [
+        "fast",
+        "default",
+        "heavy"
+      ]
+    },
+    "agent_type": {
+      "name": "agent_type",
+      "schema": "public",
+      "items": [
+        "orchestrator",
+        "product-context",
+        "prospect-discovery",
+        "enrichment",
+        "scoring",
+        "outreach",
+        "signal-monitor",
+        "buying-intent",
+        "feedback"
+      ]
+    },
+    "chat_role": {
+      "name": "chat_role",
+      "schema": "public",
+      "items": [
+        "user",
+        "assistant",
+        "tool"
+      ]
+    },
+    "chat_source_channel": {
+      "name": "chat_source_channel",
+      "schema": "public",
+      "items": [
+        "web",
+        "telegram",
+        "whatsapp"
+      ]
+    },
+    "lead_status": {
+      "name": "lead_status",
+      "schema": "public",
+      "items": [
+        "new",
+        "enriched",
+        "scored",
+        "outreach_ready",
+        "contacted",
+        "qualified",
+        "disqualified"
+      ]
+    },
+    "onboarding_status": {
+      "name": "onboarding_status",
+      "schema": "public",
+      "items": [
+        "pending",
+        "workspace_details",
+        "operator_profile",
+        "channels",
+        "first_product",
+        "completed"
+      ]
+    },
+    "outreach_tone": {
+      "name": "outreach_tone",
+      "schema": "public",
+      "items": [
+        "formal",
+        "casual",
+        "friendly"
+      ]
+    },
+    "preferred_channel": {
+      "name": "preferred_channel",
+      "schema": "public",
+      "items": [
+        "telegram",
+        "whatsapp"
+      ]
+    },
+    "schedule_channel": {
+      "name": "schedule_channel",
+      "schema": "public",
+      "items": [
+        "telegram",
+        "whatsapp"
+      ]
+    },
+    "schedule_frequency": {
+      "name": "schedule_frequency",
+      "schema": "public",
+      "items": [
+        "hourly",
+        "daily",
+        "weekly",
+        "custom"
+      ]
+    },
+    "signal_source": {
+      "name": "signal_source",
+      "schema": "public",
+      "items": [
+        "exa",
+        "tavily",
+        "perplexity",
+        "manual"
+      ]
+    },
+    "signal_type": {
+      "name": "signal_type",
+      "schema": "public",
+      "items": [
+        "content_social",
+        "hiring_org",
+        "company_activity",
+        "regulatory",
+        "buying_intent",
+        "funding",
+        "hiring",
+        "news",
+        "product_launch",
+        "leadership_change"
+      ]
+    },
+    "source_type": {
+      "name": "source_type",
+      "schema": "public",
+      "items": [
+        "news",
+        "newsletter",
+        "database",
+        "social",
+        "other"
+      ]
+    }
+  }
+}

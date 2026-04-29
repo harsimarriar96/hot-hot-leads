@@ -1,0 +1,15 @@
+export { Product } from './product.entity';
+export { ProductIcp } from './product-icp.entity';
+export { ProductSalesChannel } from './product-sales-channel.entity';
+export { ProductSource } from './product-source.entity';
+export { PredefinedProspect } from './predefined-prospect.entity';
+export { Lead } from './lead.entity';
+export { OutreachDraft } from './outreach-draft.entity';
+export { Signal } from './signal.entity';
+export { Schedule } from './schedule.entity';
+export { FeedbackEntry } from './feedback-entry.entity';
+export { Workspace } from './workspace.entity';
+export { Operator } from './operator.entity';
+export { ChannelCredential } from './channel-credential.entity';
+export { ProductChat } from './product-chat.entity';
+export { ProductChatMessage, type ChatContentBlock } from './product-chat-message.entity';
