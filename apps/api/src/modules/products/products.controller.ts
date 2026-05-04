@@ -1,5 +1,4 @@
 import {
-  BadRequestException,
   Body,
   ConflictException,
   Controller,
@@ -17,14 +16,17 @@ import {
 import { EntityManager } from '@mikro-orm/postgresql';
 import {
   IsArray,
+  IsDefined,
   IsEnum,
   IsInt,
+  IsObject,
   IsOptional,
   IsString,
   Length,
   Max,
   MaxLength,
   Min,
+  ValidateNested,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import {
@@ -69,6 +71,9 @@ class CreateProductDto {
   @MaxLength(2000)
   generalInfo?: string;
 
+  @IsDefined()
+  @IsObject()
+  @ValidateNested()
   @Type(() => IcpDto)
   icp!: IcpDto;
 }
@@ -301,7 +306,6 @@ export class ProductsController {
     const em = this.em.fork();
     const existing = await em.findOne(Product, { name: dto.name });
     if (existing) throw new ConflictException(`Product "${dto.name}" already exists`);
-    if (!dto.icp) throw new BadRequestException('icp block is required');
 
     const product = await em.transactional(async (tx) => {
       const p = tx.create(
@@ -330,9 +334,21 @@ export class ProductsController {
   async update(@Param('id') id: string, @Body() dto: UpdateProductDto) {
     const em = this.em.fork();
     const product = await em.findOneOrFail(Product, { id });
-    if (dto.name !== undefined) {
+    if (dto.name !== undefined && dto.name !== product.name) {
+      const newSlug = slugify(dto.name);
+      const conflict = await em.findOne(Product, {
+        id: { $ne: id },
+        $or: [{ name: dto.name }, { slug: newSlug }],
+      });
+      if (conflict) {
+        throw new ConflictException(
+          conflict.name === dto.name
+            ? `Product "${dto.name}" already exists`
+            : `Slug "${newSlug}" collides with product "${conflict.name}"`,
+        );
+      }
       product.name = dto.name;
-      product.slug = slugify(dto.name);
+      product.slug = newSlug;
     }
     if (dto.generalInfo !== undefined) product.generalInfo = dto.generalInfo;
     if (dto.salesStrategy !== undefined) product.salesStrategy = dto.salesStrategy;

@@ -2,6 +2,21 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
 
+const API_TARGET = 'http://localhost:3010';
+
+// The API and the SPA share these path prefixes (e.g. /settings is both a React
+// Router route and a Nest controller). Page navigations need the SPA; XHR/fetch
+// needs the API. Vite picks based on the Accept header.
+const sharedWithSpa = {
+  target: API_TARGET,
+  bypass(req: { method?: string; url?: string; headers: Record<string, string | string[] | undefined> }) {
+    const accept = String(req.headers.accept ?? '');
+    if (req.method === 'GET' && accept.includes('text/html')) {
+      return req.url;
+    }
+  },
+};
+
 export default defineConfig({
   plugins: [react()],
   resolve: {
@@ -10,12 +25,13 @@ export default defineConfig({
   server: {
     port: 5173,
     proxy: {
-      '/chat': 'http://localhost:3010',
-      '/api': 'http://localhost:3010',
-      '/health': 'http://localhost:3010',
-      '/onboarding': 'http://localhost:3010',
-      '/settings': 'http://localhost:3010',
-      '/webhooks': 'http://localhost:3010',
+      '/api': API_TARGET,
+      '/health': API_TARGET,
+      '/webhooks': API_TARGET,
+      '/chat': sharedWithSpa,
+      '/onboarding': sharedWithSpa,
+      '/products': sharedWithSpa,
+      '/settings': sharedWithSpa,
     },
   },
   build: {

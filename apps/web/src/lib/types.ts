@@ -1,6 +1,7 @@
 export interface Product {
-  productName: string;
-  notionPageId: string;
+  id: string;
+  name: string;
+  slug: string;
 }
 
 export interface Lead {

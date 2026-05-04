@@ -20,8 +20,8 @@ export function useCurrentProduct() {
 
   useEffect(() => {
     if (!products || products.length === 0) return;
-    if (!current || !products.some((p) => p.productName === current)) {
-      const first = products[0].productName;
+    if (!current || !products.some((p) => p.name === current)) {
+      const first = products[0].name;
       setCurrent(first);
       try {
         localStorage.setItem(STORAGE_KEY, first);

@@ -41,8 +41,8 @@ export function ProductSwitcher({ className }: { className?: string }) {
         aria-label="Select product"
       >
         {products.map((p) => (
-          <option key={p.productName} value={p.productName}>
-            {p.productName}
+          <option key={p.id} value={p.name}>
+            {p.name}
           </option>
         ))}
       </select>
