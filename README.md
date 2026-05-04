@@ -1,3 +1,7 @@
+<p align="left">
+  <img src="apps/web/public/logo.svg" alt="HotHotLeads" height="64" />
+</p>
+
 # HotHotLeads
 
 AI-led GTM (Go-To-Market) Engineering engine powered by Claude. Discovers, enriches, scores leads and drafts outreach via a NestJS + Claude multi-agent pipeline, controlled from a web UI and Telegram/WhatsApp.

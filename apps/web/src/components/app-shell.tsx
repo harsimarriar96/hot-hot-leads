@@ -93,7 +93,7 @@ function DesktopSidebar() {
     <aside className="hidden md:flex w-56 shrink-0 flex-col border-r border-[var(--border)] bg-[var(--surface-2)]">
       <div className="flex items-center h-12 px-4 border-b border-[var(--border)]">
         <NavLink to="/products" aria-label="HotHotLeads home" className="block">
-          <Logo className="h-5" />
+          <Logo className="h-7" />
         </NavLink>
       </div>
       <CommandHint />
@@ -136,7 +136,7 @@ function MobileTopBar() {
   return (
     <header className="md:hidden flex items-center justify-between h-12 px-4 border-b border-[var(--border)] bg-[var(--app)]">
       <NavLink to="/products" aria-label="HotHotLeads home">
-        <Logo className="h-5" />
+        <Logo className="h-7" />
       </NavLink>
       <div className="flex items-center gap-2">
         <ProductSwitcher />
