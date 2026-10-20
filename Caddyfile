@@ -1,0 +1,6 @@
+# Reverse proxy with automatic HTTPS. Set DOMAIN in .env (e.g. leads.example.com).
+# Leave DOMAIN empty to serve plain HTTP on :80 (local testing only).
+{$DOMAIN::80} {
+	encode gzip
+	reverse_proxy api:3000
+}

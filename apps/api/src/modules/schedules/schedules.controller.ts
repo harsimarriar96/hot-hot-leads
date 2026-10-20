@@ -19,7 +19,7 @@ interface UpdateScheduleDto {
   enabled?: boolean;
 }
 
-@Controller('api/schedules')
+@Controller('schedules')
 export class SchedulesController {
   private readonly logger = new Logger(SchedulesController.name);
 

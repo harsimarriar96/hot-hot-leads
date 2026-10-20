@@ -8,8 +8,8 @@
     "./tsconfig/nest.json": "./tsconfig/nest.json",
     "./tsconfig/vite.json": "./tsconfig/vite.json",
     "./tsconfig/library.json": "./tsconfig/library.json",
-    "./eslint/base.js": "./eslint/base.js",
-    "./prettier/index.js": "./prettier/index.js"
+    "./prettier/index.js": "./prettier/index.js",
+    "./eslint/base.mjs": "./eslint/base.mjs"
   },
   "files": [
     "tsconfig",

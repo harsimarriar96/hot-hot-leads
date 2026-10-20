@@ -12,6 +12,7 @@ import { OrchestratorAgent } from '../../agents/orchestrator/orchestrator.agent'
 import type { AgentEvent } from '../../agents/base/base.agent';
 import { WorkspaceService } from '../workspace/workspace.service';
 import { ChatTranscriptService } from './chat-transcript.service';
+import { DEFAULT_MODELS } from '../../config/models';
 
 export interface IncomingChannelMessage {
   productId?: string;
@@ -127,9 +128,9 @@ export class ChatService {
 function resolveModelForTier(tier: AgentModelTier): string | undefined {
   switch (tier) {
     case AgentModelTier.FAST:
-      return process.env.CLAUDE_MODEL_FAST;
+      return process.env.CLAUDE_MODEL_FAST ?? DEFAULT_MODELS.fast;
     case AgentModelTier.HEAVY:
-      return process.env.CLAUDE_MODEL_HEAVY;
+      return process.env.CLAUDE_MODEL_HEAVY ?? DEFAULT_MODELS.heavy;
     case AgentModelTier.DEFAULT:
     default:
       return undefined; // BaseAgent.defaultModel() handles it

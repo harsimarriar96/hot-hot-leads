@@ -5,6 +5,8 @@ import { EntityManager, defineConfig } from '@mikro-orm/postgresql';
 import { Migrator } from '@mikro-orm/migrations';
 import { resolve } from 'node:path';
 
+import { MigrationsRunner } from './migrations-runner';
+
 import {
   Product,
   ProductIcp,
@@ -56,17 +58,10 @@ const ENTITIES = [
         if (!clientUrl) {
           throw new Error('DATABASE_URL is not set. The API cannot start without a database connection.');
         }
-        const migrationsPath = resolve(
-          __dirname,
-          '..',
-          '..',
-          '..',
-          '..',
-          'packages',
-          'db',
-          'src',
-          'migrations',
-        );
+        // apps/api/dist/db -> <repo root>/packages/db
+        const dbPackageRoot = resolve(__dirname, '..', '..', '..', '..', 'packages', 'db');
+        const ssl = config.get<boolean>('database.ssl') === true;
+        const rejectUnauthorized = config.get<boolean>('database.sslRejectUnauthorized') !== false;
         return defineConfig({
           entities: ENTITIES,
           clientUrl,
@@ -74,16 +69,13 @@ const ENTITIES = [
           debug: config.get<string>('database.debug') === 'true',
           allowGlobalContext: true,
           extensions: [Migrator],
-          driverOptions:
-            config.get<boolean>('database.ssl') === true
-              ? { connection: { ssl: { rejectUnauthorized: false } } }
-              : {},
+          driverOptions: ssl ? { connection: { ssl: { rejectUnauthorized } } } : {},
           migrations: {
-            path: migrationsPath,
-            pathTs: migrationsPath,
+            // Compiled migrations for runtime; TS sources only when running via ts-node.
+            path: resolve(dbPackageRoot, 'dist', 'migrations'),
+            pathTs: resolve(dbPackageRoot, 'src', 'migrations'),
             transactional: true,
             allOrNothing: true,
-            emit: 'ts',
           },
         });
       },
@@ -91,6 +83,7 @@ const ENTITIES = [
     MikroOrmModule.forFeature(ENTITIES),
   ],
   providers: [
+    MigrationsRunner,
     {
       provide: ProductsRepository,
       useFactory: (em: EntityManager) => new ProductsRepository(em),

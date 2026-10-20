@@ -1,37 +1,55 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import axios from 'axios';
+import { createHmac } from 'node:crypto';
 
 import { IncomingMessage, OutgoingMessage } from '../../common/types';
+import { safeEqual } from '../../modules/auth/auth.service';
+import { describeHttpError } from '../http-error';
 
 const GRAPH_API = 'https://graph.facebook.com/v19.0';
 
 @Injectable()
-export class WhatsAppService {
+export class WhatsAppService implements OnModuleInit {
   private readonly logger = new Logger(WhatsAppService.name);
   private readonly phoneNumberId: string;
   private readonly accessToken: string;
   private readonly verifyToken: string;
+  private readonly appSecret: string;
 
   constructor(private readonly config: ConfigService) {
     this.phoneNumberId = this.config.get<string>('whatsapp.phoneNumberId') ?? '';
     this.accessToken = this.config.get<string>('whatsapp.accessToken') ?? '';
     this.verifyToken = this.config.get<string>('whatsapp.verifyToken') ?? '';
+    this.appSecret = this.config.get<string>('whatsapp.appSecret') ?? '';
+  }
+
+  onModuleInit(): void {
+    if (this.phoneNumberId && !this.appSecret) {
+      this.logger.warn(
+        'WHATSAPP_APP_SECRET is not set: inbound WhatsApp webhooks will be rejected until it is configured.',
+      );
+    }
   }
 
   async send(message: OutgoingMessage): Promise<void> {
-    await axios.post(
-      `${GRAPH_API}/${this.phoneNumberId}/messages`,
-      {
-        messaging_product: 'whatsapp',
-        to: message.chatId,
-        type: 'text',
-        text: { body: message.text },
-      },
-      {
-        headers: { Authorization: `Bearer ${this.accessToken}` },
-      },
-    );
+    try {
+      await axios.post(
+        `${GRAPH_API}/${this.phoneNumberId}/messages`,
+        {
+          messaging_product: 'whatsapp',
+          to: message.chatId,
+          type: 'text',
+          text: { body: message.text },
+        },
+        {
+          headers: { Authorization: `Bearer ${this.accessToken}` },
+        },
+      );
+    } catch (err) {
+      // Never rethrow the axios error itself: its config carries the bearer token.
+      throw new Error(`WhatsApp send failed: ${describeHttpError(err)}`);
+    }
     this.logger.log(`Message sent to ${message.chatId}`);
   }
 
@@ -63,9 +81,19 @@ export class WhatsAppService {
   }
 
   verifyWebhook(mode: string, token: string, challenge: string): string | null {
-    if (mode === 'subscribe' && token === this.verifyToken) {
+    if (mode === 'subscribe' && this.verifyToken && token && safeEqual(token, this.verifyToken)) {
       return challenge;
     }
     return null;
+  }
+
+  /**
+   * Meta signs every webhook POST: X-Hub-Signature-256 = "sha256=" + HMAC-SHA256(app secret, raw body).
+   * No app secret configured => reject all.
+   */
+  verifySignature(rawBody: Buffer | undefined, signatureHeader: string | undefined): boolean {
+    if (!this.appSecret || !rawBody || !signatureHeader) return false;
+    const expected = `sha256=${createHmac('sha256', this.appSecret).update(rawBody).digest('hex')}`;
+    return safeEqual(signatureHeader, expected);
   }
 }

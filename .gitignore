@@ -1,6 +1,7 @@
 node_modules/
 .env
-.env.local
+.env.*
+!.env.example
 .DS_Store
 *.js.map
 
@@ -16,3 +17,7 @@ coverage/
 # Editor/IDE
 *.tsbuildinfo
 .gstack/
+
+# Local-only
+docker-compose.override.yml
+video/

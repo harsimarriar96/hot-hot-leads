@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { z } from 'zod';
 
 import { BaseAgent, AgentToolDef } from '../base/base.agent';
@@ -20,6 +21,7 @@ export class OrchestratorAgent extends BaseAgent {
   protected readonly systemPrompt = ORCHESTRATOR_SYSTEM_PROMPT;
 
   constructor(
+    private readonly config: ConfigService,
     private readonly productsRepo: ProductsRepository,
     private readonly schedulesRepo: SchedulesRepository,
     private readonly productContextAgent: ProductContextAgent,
@@ -40,7 +42,8 @@ export class OrchestratorAgent extends BaseAgent {
   }
 
   protected buildTools(): AgentToolDef[] {
-    return [
+    const schedulesEnabled = this.config.get<boolean>('features.schedules') === true;
+    const tools: AgentToolDef[] = [
       {
         name: 'get_products',
         description: 'List all available products.',
@@ -164,5 +167,7 @@ export class OrchestratorAgent extends BaseAgent {
           }),
       },
     ];
+    // Schedules are gated behind SCHEDULES_ENABLED until the scheduler is production-ready.
+    return schedulesEnabled ? tools : tools.filter((t) => t.name !== 'save_schedule');
   }
 }

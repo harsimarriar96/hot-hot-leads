@@ -1,5 +1,7 @@
 import { Logger } from '@nestjs/common';
 import { createSdkMcpServer, query, tool } from '@anthropic-ai/claude-agent-sdk';
+
+import { DEFAULT_MODELS } from '../../config/models';
 import type { ZodRawShape } from 'zod';
 
 export interface AgentRunOptions {
@@ -49,8 +51,9 @@ type ExtractedAssistantBlock =
 
 /**
  * BaseAgent runs a Claude Agent SDK `query()` with an in-process MCP server
- * holding the agent's tools. Auth is via the user's Claude Code subscription —
- * no ANTHROPIC_API_KEY needed.
+ * holding the agent's tools. The SDK spawns the Claude Code CLI as a subprocess,
+ * which authenticates with the ANTHROPIC_API_KEY inherited from this process's
+ * environment. ANTHROPIC_API_KEY is therefore required in production.
  *
  * Each subclass provides: systemPrompt, agentName, buildTools().
  */
@@ -81,7 +84,7 @@ export abstract class BaseAgent {
 
     const tools = defs.map((d) =>
       tool(d.name, d.description, d.schema, async (args) => {
-        this.logger.debug(`[${this.agentName}] tool: ${d.name}`, args as Record<string, unknown>);
+        this.logger.debug(`[${this.agentName}] tool: ${d.name}`);
         try {
           const result = await d.handler(args as Record<string, unknown>);
           return {
@@ -114,6 +117,10 @@ export abstract class BaseAgent {
         systemPrompt,
         model,
         mcpServers: { [serverName]: mcpServer },
+        // Only our in-process MCP server: never load MCP servers or settings from the host
+        // machine (a developer's personal connectors can carry schemas the API rejects).
+        strictMcpConfig: true,
+        settingSources: [],
         allowedTools: toolNames,
         tools: [],
         permissionMode: 'bypassPermissions',
@@ -205,7 +212,7 @@ export abstract class BaseAgent {
   }
 
   protected defaultModel(): string {
-    return process.env.CLAUDE_MODEL ?? 'claude-sonnet-4-5';
+    return process.env.CLAUDE_MODEL ?? DEFAULT_MODELS.default;
   }
 
   private extractBlocks(msg: unknown): ExtractedAssistantBlock[] {

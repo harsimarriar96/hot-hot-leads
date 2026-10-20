@@ -9,7 +9,7 @@ import {
   SignalsRepository,
 } from '@hothotleads/db';
 
-@Controller('api')
+@Controller()
 export class ReportsController {
   constructor(
     private readonly productsRepo: ProductsRepository,

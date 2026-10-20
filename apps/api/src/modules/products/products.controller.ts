@@ -208,7 +208,7 @@ class ProspectDto {
   icpFitNotes?: string;
 }
 
-@Controller('api/products')
+@Controller('products')
 @UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }))
 export class ProductsController {
   constructor(

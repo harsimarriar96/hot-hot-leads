@@ -27,11 +27,9 @@ export function ProductsListPage() {
   const [seeding, setSeeding] = useState(false);
 
   async function loadDemoData() {
-    const token = window.prompt('Enter your APP_SECRET_KEY to load demo data:');
-    if (!token) return;
     setSeeding(true);
     try {
-      const result = await adminApi.demoSeed(token);
+      const result = await adminApi.demoSeed();
       await qc.invalidateQueries({ queryKey: ['products'] });
       toast.push({
         message: `Loaded ${result.counts.leads} leads, ${result.counts.signals} signals`,
@@ -81,9 +79,6 @@ export function ProductsListPage() {
               {seeding ? 'Loading…' : 'Load demo data'}
             </Button>
           </div>
-          <p className="mt-2 text-[10px] text-[var(--text-tertiary)]">
-            Demo data needs your APP_SECRET_KEY.
-          </p>
         </div>
       )}
 

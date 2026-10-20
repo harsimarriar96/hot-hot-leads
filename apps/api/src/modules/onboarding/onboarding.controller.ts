@@ -2,15 +2,12 @@ import {
   Body,
   ConflictException,
   Controller,
-  ForbiddenException,
   Get,
-  Headers,
   HttpCode,
   Post,
   UsePipes,
   ValidationPipe,
 } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import { OnboardingStatus } from '@hothotleads/db';
 
 import {
@@ -24,10 +21,7 @@ import { OnboardingService } from './onboarding.service';
 @Controller('onboarding')
 @UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }))
 export class OnboardingController {
-  constructor(
-    private readonly onboarding: OnboardingService,
-    private readonly config: ConfigService,
-  ) {}
+  constructor(private readonly onboarding: OnboardingService) {}
 
   @Get()
   async getStatus() {
@@ -66,13 +60,10 @@ export class OnboardingController {
     return { status: OnboardingStatus.COMPLETED, product: { id: product.id, name: product.name } };
   }
 
+  /** Wipes workspace + operator + channel rows. Protected by the global bearer guard. */
   @Post('reset')
   @HttpCode(204)
-  async reset(@Headers('x-admin-token') token?: string) {
-    const expected = this.config.get<string>('security.appSecretKey');
-    if (!token || !expected || token !== expected) {
-      throw new ForbiddenException('Invalid admin token');
-    }
+  async reset() {
     await this.onboarding.reset();
   }
 

@@ -1,13 +1,13 @@
+import { apiJson, postJson } from './http';
 import type { ChatReply, Feedback, Lead, Outreach, Product, Signal } from './types';
 
 async function getJSON<T>(url: string): Promise<T> {
-  const res = await fetch(url);
-  if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
-  const data = await res.json();
-  if (data && typeof data === 'object' && 'error' in data && data.error) {
-    throw new Error(String(data.error));
+  const data = await apiJson<T>(url);
+  // The reports endpoints answer 200 with { error } when the product param is missing.
+  if (data && typeof data === 'object' && 'error' in data && (data as { error?: unknown }).error) {
+    throw new Error(String((data as { error: unknown }).error));
   }
-  return data as T;
+  return data;
 }
 
 export const api = {
@@ -20,16 +20,5 @@ export const api = {
     getJSON<Outreach[]>(`/api/outreach?product=${encodeURIComponent(product)}`),
   feedback: (product: string) =>
     getJSON<Feedback[]>(`/api/feedback?product=${encodeURIComponent(product)}`),
-  chat: async (text: string, userId = 'web-demo'): Promise<ChatReply> => {
-    const res = await fetch('/chat', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text, userId }),
-    });
-    if (!res.ok) {
-      const msg = await res.text().catch(() => res.statusText);
-      throw new Error(msg || 'Chat request failed');
-    }
-    return (await res.json()) as ChatReply;
-  },
+  chat: (text: string, userId = 'web-demo') => postJson<ChatReply>('/api/chat', { text, userId }),
 };

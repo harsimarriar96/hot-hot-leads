@@ -1,3 +1,5 @@
+# Local development: Postgres only. The API and web app run on the host via `npx turbo run dev`.
+# For the production stack (API + Caddy), see docker-compose.prod.yml.
 services:
   postgres:
     image: postgres:16-alpine
@@ -5,10 +7,10 @@ services:
     restart: unless-stopped
     environment:
       POSTGRES_USER: hothotleads
-      POSTGRES_PASSWORD: hothotleads
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-hothotleads}
       POSTGRES_DB: hothotleads
     ports:
-      - "5434:5432"
+      - "${POSTGRES_PORT:-5434}:5432"
     volumes:
       - hothotleads-pgdata:/var/lib/postgresql/data
     healthcheck:

@@ -1,3 +1,5 @@
+import { apiJson as jsonOrThrow } from './http';
+
 export interface ScheduleRow {
   id: string;
   name: string;
@@ -13,17 +15,6 @@ export interface ScheduleRow {
   productName: string | null;
   productId: string | null;
   createdAt: string;
-}
-
-async function jsonOrThrow<T>(url: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(url, init);
-  const text = await res.text();
-  const body = text ? JSON.parse(text) : null;
-  if (!res.ok) {
-    const msg = (body && (body.message || body.error)) || `${res.status} ${res.statusText}`;
-    throw new Error(Array.isArray(msg) ? msg.join('; ') : String(msg));
-  }
-  return body as T;
 }
 
 export const schedulesApi = {

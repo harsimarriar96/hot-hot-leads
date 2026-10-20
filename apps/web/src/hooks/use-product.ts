@@ -25,7 +25,9 @@ export function useCurrentProduct() {
       setCurrent(first);
       try {
         localStorage.setItem(STORAGE_KEY, first);
-      } catch {}
+      } catch {
+      /* storage unavailable (private mode) */
+    }
     }
   }, [products, current]);
 
@@ -33,7 +35,9 @@ export function useCurrentProduct() {
     setCurrent(name);
     try {
       localStorage.setItem(STORAGE_KEY, name);
-    } catch {}
+    } catch {
+      /* storage unavailable (private mode) */
+    }
   }, []);
 
   return { current, products: products ?? [], select };

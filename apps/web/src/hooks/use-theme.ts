@@ -9,7 +9,9 @@ function getInitial(): Theme {
   try {
     const stored = localStorage.getItem('hhl-theme') as Theme | null;
     if (stored === 'light' || stored === 'dark') return stored;
-  } catch {}
+  } catch {
+      /* storage unavailable (private mode) */
+    }
   return matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
 }
 
@@ -20,7 +22,9 @@ export function useTheme() {
     document.documentElement.dataset.theme = theme;
     try {
       localStorage.setItem('hhl-theme', theme);
-    } catch {}
+    } catch {
+      /* storage unavailable (private mode) */
+    }
   }, [theme]);
 
   const toggle = useCallback(() => {

@@ -20,7 +20,7 @@ npm run db:migrate:down
 npm run db:fresh
 ```
 
-From the repo root, add `DATABASE_URL` to your shell or `apps/api/.env` first, then:
+The CLI reads `packages/db/.env` (see `mikro-orm.config.ts`), so put `DATABASE_URL` there or export it in your shell, then from the repo root:
 
 ```bash
 npm --workspace @hothotleads/db run db:migrate

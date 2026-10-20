@@ -2,11 +2,14 @@ import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import {
   Clock,
   LayoutDashboard,
+  LogOut,
   MessagesSquare,
   Package,
   Settings,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { setToken } from '@/lib/http';
+import { Badge } from './ui/badge';
 import { ThemeToggle } from './theme-toggle';
 import { ProductSwitcher } from './product-switcher';
 import { AgentActivityStrip } from './agent-activity-strip';
@@ -16,7 +19,7 @@ const nav = [
   { to: '/products', label: 'Products', icon: Package, end: false },
   { to: '/chat', label: 'Chat', icon: MessagesSquare, end: true },
   { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, end: false },
-  { to: '/schedules', label: 'Schedules', icon: Clock, end: false },
+  { to: '/schedules', label: 'Schedules', icon: Clock, end: false, soon: true },
   { to: '/settings', label: 'Settings', icon: Settings, end: false },
 ] as const;
 
@@ -98,7 +101,7 @@ function DesktopSidebar() {
       </div>
       <CommandHint />
       <nav className="flex-1 flex flex-col gap-0.5 px-2 py-3">
-        {nav.map(({ to, icon: Icon, label, end }) => (
+        {nav.map(({ to, icon: Icon, label, end, ...item }) => (
           <NavLink
             key={to}
             to={to}
@@ -117,6 +120,7 @@ function DesktopSidebar() {
               <>
                 <Icon className={cn('h-4 w-4', isActive && 'text-[var(--accent)]')} />
                 <span className="truncate">{label}</span>
+                {'soon' in item && item.soon && <Badge className="ml-auto">Soon</Badge>}
                 {isActive && (
                   <span
                     aria-hidden
@@ -128,6 +132,16 @@ function DesktopSidebar() {
           </NavLink>
         ))}
       </nav>
+      <div className="px-2 pb-3">
+        <button
+          type="button"
+          onClick={() => setToken(null)}
+          className="flex items-center gap-2.5 h-9 w-full px-2.5 rounded-md text-sm text-[var(--text-secondary)] hover:text-[var(--text)] hover:bg-[var(--surface-hover)] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
+        >
+          <LogOut className="h-4 w-4" />
+          <span>Sign out</span>
+        </button>
+      </div>
     </aside>
   );
 }

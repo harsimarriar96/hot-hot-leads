@@ -18,6 +18,8 @@ import { cn } from '@/lib/utils';
 
 const COLS = 'grid-cols-[minmax(120px,1fr)_60px_minmax(240px,3fr)_100px]';
 
+const joinList = (items?: string[]) => (items && items.length > 0 ? items.join(' · ') : '');
+
 function qualityTone(q?: number | null) {
   if (q == null) return 'text-[var(--text-tertiary)]';
   if (q >= 8) return 'text-[var(--success)]';
@@ -68,10 +70,10 @@ export function FeedbackTable({ product }: { product: string | null }) {
                   {row.qualityScore != null ? row.qualityScore.toFixed(1) : '—'}
                 </div>
                 <div className="min-w-0 text-xs text-[var(--text-secondary)] truncate">
-                  {row.issues || row.suggestions || '—'}
+                  {joinList(row.issues) || joinList(row.suggestions) || '—'}
                 </div>
                 <div className="text-right font-mono text-[11px] text-[var(--text-tertiary)] tabular-nums">
-                  {relativeTime(row.date)}
+                  {relativeTime(row.createdAt)}
                 </div>
               </DashRow>
               <DashCard
@@ -92,11 +94,11 @@ export function FeedbackTable({ product }: { product: string | null }) {
                     </span>
                   </div>
                   <span className="font-mono text-[10px] text-[var(--text-tertiary)] tabular-nums">
-                    {relativeTime(row.date)}
+                    {relativeTime(row.createdAt)}
                   </span>
                 </div>
                 <div className="text-xs text-[var(--text-secondary)] line-clamp-2">
-                  {row.issues || row.suggestions || '—'}
+                  {joinList(row.issues) || joinList(row.suggestions) || '—'}
                 </div>
               </DashCard>
             </div>
@@ -121,7 +123,7 @@ export function FeedbackTable({ product }: { product: string | null }) {
               )}
             </div>
             <SheetTitle>Feedback entry</SheetTitle>
-            <SheetDescription>{relativeTime(active?.date)}</SheetDescription>
+            <SheetDescription>{relativeTime(active?.createdAt)}</SheetDescription>
           </SheetHeader>
           <SheetBody>
             <section className="mb-5">
@@ -129,7 +131,7 @@ export function FeedbackTable({ product }: { product: string | null }) {
                 Issues
               </h3>
               <p className="text-sm text-[var(--text)] leading-relaxed whitespace-pre-wrap">
-                {active?.issues || '—'}
+                {active?.issues?.length ? active.issues.map((i) => `• ${i}`).join('\n') : '—'}
               </p>
             </section>
             <section>
@@ -137,7 +139,7 @@ export function FeedbackTable({ product }: { product: string | null }) {
                 Suggestions
               </h3>
               <p className="text-sm text-[var(--text)] leading-relaxed whitespace-pre-wrap">
-                {active?.suggestions || '—'}
+                {active?.suggestions?.length ? active.suggestions.map((i) => `• ${i}`).join('\n') : '—'}
               </p>
             </section>
           </SheetBody>

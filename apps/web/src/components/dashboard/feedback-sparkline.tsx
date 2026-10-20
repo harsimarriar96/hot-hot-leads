@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { apiJson } from '@/lib/http';
 
 interface WeekPoint {
   week: string;
@@ -6,11 +7,8 @@ interface WeekPoint {
   count: number;
 }
 
-async function fetchTrend(product: string): Promise<WeekPoint[]> {
-  const res = await fetch(`/api/feedback/trend?product=${encodeURIComponent(product)}&weeks=12`);
-  if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
-  return res.json();
-}
+const fetchTrend = (product: string) =>
+  apiJson<WeekPoint[]>(`/api/feedback/trend?product=${encodeURIComponent(product)}&weeks=12`);
 
 /**
  * Weekly average feedback score, rendered as a small SVG bar-line sparkline.

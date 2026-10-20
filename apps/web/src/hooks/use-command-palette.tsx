@@ -149,7 +149,7 @@ export function CommandPaletteProvider({ children }: { children: React.ReactNode
                   Dashboard
                 </Item>
                 <Item shortcut="G R" onSelect={() => runCommand(() => navigate('/schedules'))}>
-                  Schedules
+                  Schedules · coming soon
                 </Item>
                 <Item shortcut="G S" onSelect={() => runCommand(() => navigate('/settings'))}>
                   Settings

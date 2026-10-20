@@ -35,9 +35,6 @@ export function KpiStrip({ product }: { product: string | null }) {
   }).length;
 
   const totalOutreach = outreach.data?.length ?? 0;
-  const draftedOutreach = (outreach.data ?? []).filter(
-    (o) => (o.status ?? '').toLowerCase().includes('draft') || !o.status
-  ).length;
 
   const fbData = feedback.data ?? [];
   const avgQuality =
@@ -61,8 +58,8 @@ export function KpiStrip({ product }: { product: string | null }) {
     },
     {
       label: 'Drafts',
-      primary: placeholder ?? `${draftedOutreach}`,
-      context: placeholder ? '' : `of ${totalOutreach} outreach`,
+      primary: placeholder ?? `${totalOutreach}`,
+      context: placeholder ? '' : 'latest outreach drafts',
     },
     {
       label: 'Quality',

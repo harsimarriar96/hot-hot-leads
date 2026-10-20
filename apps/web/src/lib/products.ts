@@ -64,17 +64,9 @@ export type ChatContentBlock =
       is_error?: boolean;
     };
 
-async function jsonOrThrow<T>(url: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(url, init);
-  const text = await res.text();
-  const body = text ? JSON.parse(text) : null;
-  if (!res.ok) {
-    const msg =
-      (body && (body.message || body.error)) || `${res.status} ${res.statusText}`;
-    throw new Error(Array.isArray(msg) ? msg.join('; ') : String(msg));
-  }
-  return body as T;
-}
+import { apiFetch, apiJson, deleteJson } from './http';
+
+const jsonOrThrow = apiJson;
 
 export const productsApi = {
   list: () => jsonOrThrow<ProductSummary[]>('/api/products'),
@@ -107,8 +99,7 @@ export const productsApi = {
       body: JSON.stringify(body),
     }),
   delete: async (id: string) => {
-    const res = await fetch(`/api/products/${id}`, { method: 'DELETE' });
-    if (!res.ok && res.status !== 204) throw new Error(`${res.status} ${res.statusText}`);
+    await deleteJson(`/api/products/${id}`);
   },
   putIcp: (
     id: string,
@@ -151,36 +142,23 @@ export const productsApi = {
     kind: 'sales-channels' | 'sources' | 'predefined-prospects',
     childId: string,
   ) => {
-    const res = await fetch(`/api/products/${id}/${kind}/${childId}`, { method: 'DELETE' });
-    if (!res.ok && res.status !== 204) throw new Error(`${res.status} ${res.statusText}`);
+    await deleteJson(`/api/products/${id}/${kind}/${childId}`);
   },
 };
 
 export const adminApi = {
-  /**
-   * Seed a rich demo scenario. Needs the APP_SECRET_KEY as the admin token.
-   * Prompts the user for the token on first use; the prompt is deliberate —
-   * this surface is operator-only and should not be a one-click footgun.
-   */
-  demoSeed: async (token: string) => {
-    const res = await fetch('/admin/demo-seed', {
+  /** Seed a rich demo scenario. Operator-only; covered by the signed-in session. */
+  demoSeed: () =>
+    apiJson<{ productId: string; counts: Record<string, number> }>('/api/admin/demo-seed', {
       method: 'POST',
-      headers: { 'X-Admin-Token': token },
-    });
-    if (!res.ok) {
-      const text = await res.text().catch(() => '');
-      throw new Error(text || `${res.status} ${res.statusText}`);
-    }
-    return res.json() as Promise<{ productId: string; counts: Record<string, number> }>;
-  },
+    }),
 };
 
 export const productChatApi = {
   get: (productId: string) =>
-    jsonOrThrow<ProductChatView>(`/products/${productId}/chat`),
+    jsonOrThrow<ProductChatView>(`/api/products/${productId}/chat`),
   clear: async (productId: string) => {
-    const res = await fetch(`/products/${productId}/chat`, { method: 'DELETE' });
-    if (!res.ok && res.status !== 204) throw new Error(`${res.status} ${res.statusText}`);
+    await deleteJson(`/api/products/${productId}/chat`);
   },
   /** Start SSE stream. Returns an AbortController; consumer reads events via the callback. */
   stream: (
@@ -191,7 +169,7 @@ export const productChatApi = {
     onDone?: () => void,
   ): AbortController => {
     const controller = new AbortController();
-    fetch(`/products/${productId}/chat/messages`, {
+    apiFetch(`/api/products/${productId}/chat/messages`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Accept: 'text/event-stream' },
       body: JSON.stringify({ text }),

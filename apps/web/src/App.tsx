@@ -1,7 +1,9 @@
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense, useSyncExternalStore } from 'react';
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { TooltipProvider } from '@radix-ui/react-tooltip';
 import { AppShell } from './components/app-shell';
+import { LoginPage } from './pages/login-page';
+import { getToken, subscribeToken } from './lib/http';
 import { ChatPage } from './pages/chat-page';
 import { DashboardPage } from './pages/dashboard-page';
 import { SettingsPage } from './pages/settings-page';
@@ -94,10 +96,31 @@ function AppRoutes() {
   );
 }
 
+/** Gate order: sign-in → onboarding → app. */
+function AuthGate() {
+  const token = useSyncExternalStore(subscribeToken, getToken);
+  const location = useLocation();
+
+  if (!token) {
+    return location.pathname === '/login' ? (
+      <LoginPage />
+    ) : (
+      <Navigate to="/login" replace state={{ from: location.pathname }} />
+    );
+  }
+
+  if (location.pathname === '/login') {
+    const from = (location.state as { from?: string } | null)?.from;
+    return <Navigate to={from && from !== '/login' ? from : '/'} replace />;
+  }
+
+  return <AppRoutes />;
+}
+
 export default function App() {
   return (
     <TooltipProvider delayDuration={200} skipDelayDuration={100}>
-      <AppRoutes />
+      <AuthGate />
     </TooltipProvider>
   );
 }

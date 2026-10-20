@@ -1,3 +1,5 @@
+import { apiJson, patchJson, postJson } from './http';
+
 export type OnboardingStatus =
   | 'pending'
   | 'workspace_details'
@@ -18,55 +20,19 @@ export interface OnboardingView {
   };
 }
 
-async function postJSON(url: string, body: unknown): Promise<unknown> {
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-  });
-  const text = await res.text();
-  const parsed = text ? JSON.parse(text) : null;
-  if (!res.ok) {
-    const msg =
-      (parsed && (parsed.message || parsed.error)) || `${res.status} ${res.statusText}`;
-    const err = new Error(Array.isArray(msg) ? msg.join('; ') : String(msg));
-    (err as { status?: number }).status = res.status;
-    (err as { body?: unknown }).body = parsed;
-    throw err;
-  }
-  return parsed;
-}
-
-async function patchJSON(url: string, body: unknown): Promise<unknown> {
-  const res = await fetch(url, {
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-  });
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(text || `${res.status} ${res.statusText}`);
-  }
-  return res.json();
-}
-
 export const onboardingApi = {
-  status: async (): Promise<OnboardingView> => {
-    const res = await fetch('/onboarding');
-    if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
-    return res.json();
-  },
+  status: () => apiJson<OnboardingView>('/api/onboarding'),
   workspaceDetails: (body: { name: string; timezone: string; defaultCurrency?: string }) =>
-    postJSON('/onboarding/workspace-details', body),
+    postJson('/api/onboarding/workspace-details', body),
   operatorProfile: (body: {
     name: string;
     email: string;
     preferredChannel: 'telegram' | 'whatsapp';
-  }) => postJSON('/onboarding/operator-profile', body),
+  }) => postJson('/api/onboarding/operator-profile', body),
   channels: (body: {
     telegram?: { botToken: string; webhookSecret?: string };
     whatsapp?: { phoneNumberId: string; accessToken: string; verifyToken: string };
-  }) => postJSON('/onboarding/channels', body),
+  }) => postJson('/api/onboarding/channels', body),
   firstProduct: (body: {
     name: string;
     generalInfo?: string;
@@ -76,7 +42,7 @@ export const onboardingApi = {
       geographies: string[];
       notes?: string;
     };
-  }) => postJSON('/onboarding/first-product', body),
+  }) => postJson('/api/onboarding/first-product', body),
 };
 
 export interface SettingsView {
@@ -98,16 +64,12 @@ export interface SettingsView {
 }
 
 export const settingsApi = {
-  get: async (): Promise<SettingsView> => {
-    const res = await fetch('/settings');
-    if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
-    return res.json();
-  },
+  get: () => apiJson<SettingsView>('/api/settings'),
   updateWorkspace: (body: { name?: string; timezone?: string; defaultCurrency?: string }) =>
-    patchJSON('/settings/workspace', body),
+    patchJson('/api/settings/workspace', body),
   updateOperator: (body: {
     name?: string;
     email?: string;
     preferredChannel?: 'telegram' | 'whatsapp';
-  }) => patchJSON('/settings/operator', body),
+  }) => patchJson('/api/settings/operator', body),
 };

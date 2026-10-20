@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { z } from 'zod';
 
 import { BaseAgent, AgentToolDef } from '../base/base.agent';
+import { DEFAULT_MODELS } from '../../config/models';
 import { ProductsRepository } from '@hothotleads/db';
 import { SignalsRepository } from '@hothotleads/db';
 import { LeadsRepository } from '@hothotleads/db';
@@ -57,7 +58,7 @@ Always provide a clear, specific reasoning for the score. Reference specific sig
   }
 
   protected defaultModel(): string {
-    return this.config.get<string>('anthropic.modelHeavy') ?? 'claude-opus-4-5';
+    return this.config.get<string>('anthropic.modelHeavy') ?? DEFAULT_MODELS.heavy;
   }
 
   async analyzeForCompany(productName: string, company: string): Promise<string> {

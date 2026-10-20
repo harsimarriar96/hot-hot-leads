@@ -13,7 +13,15 @@ const entities = Object.values(Entities);
 export default defineConfig({
   entities,
   clientUrl: process.env.DATABASE_URL,
-  driverOptions: process.env.DATABASE_SSL === 'true' ? { connection: { ssl: { rejectUnauthorized: false } } } : {},
+  driverOptions:
+    process.env.DATABASE_SSL === 'true'
+      ? {
+          connection: {
+            // Verify the server certificate unless explicitly opted out (self-signed dev setups).
+            ssl: { rejectUnauthorized: process.env.DATABASE_SSL_REJECT_UNAUTHORIZED !== 'false' },
+          },
+        }
+      : {},
   pool: { min: 2, max: 10 },
   debug: process.env.MIKROORM_DEBUG === 'true',
   extensions: [Migrator],

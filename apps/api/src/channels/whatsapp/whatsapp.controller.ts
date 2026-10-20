@@ -3,20 +3,27 @@ import {
   Controller,
   ForbiddenException,
   Get,
+  Headers,
   HttpCode,
+  Logger,
   Post,
   Query,
+  RawBodyRequest,
+  Req,
   Res,
 } from '@nestjs/common';
-import { Response } from 'express';
-
+import { Request, Response } from 'express';
 import { ChatSourceChannel } from '@hothotleads/db';
 
 import { ChatService } from '../../modules/chat/chat.service';
+import { Public } from '../../modules/auth/public.decorator';
 import { WhatsAppService } from './whatsapp.service';
 
+@Public()
 @Controller('webhooks/whatsapp')
 export class WhatsAppController {
+  private readonly logger = new Logger(WhatsAppController.name);
+
   constructor(
     private readonly whatsapp: WhatsAppService,
     private readonly chatService: ChatService,
@@ -39,23 +46,36 @@ export class WhatsAppController {
 
   @Post()
   @HttpCode(200)
-  async handleWebhook(@Body() payload: Record<string, unknown>): Promise<void> {
+  async handleWebhook(
+    @Req() req: RawBodyRequest<Request>,
+    @Body() payload: Record<string, unknown>,
+    @Headers('x-hub-signature-256') signature?: string,
+  ): Promise<void> {
+    if (!this.whatsapp.verifySignature(req.rawBody, signature)) {
+      throw new ForbiddenException('Invalid webhook signature');
+    }
+
     const message = this.whatsapp.parseIncoming(payload);
     if (!message) return;
 
-    this.chatService
-      .handleIncoming({
-        senderRef: message.userId,
-        text: message.text,
+    void this.process(message.userId, message.chatId, message.text);
+  }
+
+  private async process(userId: string, chatId: string, text: string): Promise<void> {
+    try {
+      const response = await this.chatService.handleIncoming({
+        senderRef: userId,
+        text,
         sourceChannel: ChatSourceChannel.WHATSAPP,
-      })
-      .then((response) => this.whatsapp.send({ chatId: message.chatId, text: response }))
-      .catch((err) => {
-        console.error('Chat service error:', err);
-        this.whatsapp.send({
-          chatId: message.chatId,
-          text: '⚠️ Something went wrong. Please try again.',
-        });
       });
+      await this.whatsapp.send({ chatId, text: response });
+    } catch (err) {
+      this.logger.error(`Chat handling failed: ${(err as Error).message}`);
+      try {
+        await this.whatsapp.send({ chatId, text: '⚠️ Something went wrong. Please try again.' });
+      } catch (sendErr) {
+        this.logger.error(`Could not deliver error reply: ${(sendErr as Error).message}`);
+      }
+    }
   }
 }

@@ -44,21 +44,23 @@ export class SchedulerService implements OnApplicationBootstrap {
         ? schedule.cronExpression
         : FREQUENCY_TO_CRON[schedule.frequency] ?? '0 9 * * *';
 
-    const job = new CronJob(cronExpr, async () => {
-      await this.runSchedule(schedule);
-    });
+    let job: CronJob;
+    try {
+      job = new CronJob(cronExpr, async () => {
+        await this.runSchedule(schedule);
+      });
+    } catch (err) {
+      this.logger.error(
+        `Skipping schedule "${schedule.name}": invalid cron expression "${cronExpr}" (${(err as Error).message})`,
+      );
+      return;
+    }
 
     const jobId = `schedule_${schedule.id}`;
-    try {
-      this.schedulerRegistry.addCronJob(jobId, job);
-      job.start();
-      this.logger.log(`Registered schedule: "${schedule.name}" (${cronExpr})`);
-    } catch {
-      // Job already registered — replace it
-      this.schedulerRegistry.deleteCronJob(jobId);
-      this.schedulerRegistry.addCronJob(jobId, job);
-      job.start();
-    }
+    this.unregister(schedule.id);
+    this.schedulerRegistry.addCronJob(jobId, job);
+    job.start();
+    this.logger.log(`Registered schedule: "${schedule.name}" (${cronExpr})`);
   }
 
   unregister(scheduleId: string): void {
@@ -88,12 +90,16 @@ export class SchedulerService implements OnApplicationBootstrap {
       await this.deliver(schedule.channel, schedule.chatId, response);
       await this.schedulesRepo.markLastRun(schedule.id);
     } catch (err) {
-      this.logger.error(`Schedule "${schedule.name}" failed:`, err);
-      await this.deliver(
-        schedule.channel,
-        schedule.chatId,
-        `⚠️ Scheduled task *${schedule.name}* failed. Please check the logs.`,
-      );
+      this.logger.error(`Schedule "${schedule.name}" failed: ${(err as Error).message}`);
+      try {
+        await this.deliver(
+          schedule.channel,
+          schedule.chatId,
+          `⚠️ Scheduled task *${schedule.name}* failed. Please check the logs.`,
+        );
+      } catch (deliverErr) {
+        this.logger.error(`Could not deliver failure notice: ${(deliverErr as Error).message}`);
+      }
     }
   }
 

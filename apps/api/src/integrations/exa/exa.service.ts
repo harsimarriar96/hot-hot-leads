@@ -20,10 +20,20 @@ export interface SearchResult {
 @Injectable()
 export class ExaService {
   private readonly logger = new Logger(ExaService.name);
-  private readonly exa: Exa;
+  private client: Exa | null = null;
 
-  constructor(private readonly config: ConfigService) {
-    this.exa = new Exa(this.config.get<string>('exa.apiKey'));
+  constructor(private readonly config: ConfigService) {}
+
+  /** Lazily constructed so a missing key fails the first search, not the boot. */
+  private get exa(): Exa {
+    if (!this.client) {
+      const apiKey = this.config.get<string>('exa.apiKey');
+      if (!apiKey) {
+        throw new Error('EXA_API_KEY is not set. Web research (prospect discovery, enrichment, signals) needs it.');
+      }
+      this.client = new Exa(apiKey);
+    }
+    return this.client;
   }
 
   async search(query: string, options: SearchOptions = {}): Promise<SearchResult[]> {

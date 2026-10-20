@@ -51,12 +51,14 @@ export interface Outreach {
 
 export interface Feedback {
   id?: string;
-  name?: string;
   agentType?: string;
   qualityScore?: number | null;
-  issues?: string;
-  suggestions?: string;
-  date?: string;
+  inputSummary?: string;
+  outputSummary?: string;
+  issues?: string[];
+  suggestions?: string[];
+  overallAssessment?: string;
+  createdAt?: string;
 }
 
 export interface ChatReply {
