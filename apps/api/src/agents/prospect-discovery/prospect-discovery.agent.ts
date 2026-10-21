@@ -5,6 +5,7 @@ import { BaseAgent, AgentToolDef } from '../base/base.agent';
 import { ExaService } from '../../integrations/exa/exa.service';
 import { ProductsRepository } from '@hothotleads/db';
 import { LeadsRepository } from '@hothotleads/db';
+import { EntitlementsService } from '../../modules/auth/entitlements.service';
 
 @Injectable()
 export class ProspectDiscoveryAgent extends BaseAgent {
@@ -31,6 +32,7 @@ Your job: find new companies that match the product's ICP using web research.
     private readonly productsRepo: ProductsRepository,
     private readonly leadsRepo: LeadsRepository,
     private readonly exaService: ExaService,
+    private readonly entitlements: EntitlementsService,
   ) {
     super();
   }
@@ -41,8 +43,8 @@ Your job: find new companies that match the product's ICP using web research.
         name: 'get_product_knowledge',
         description: 'Get ICP, predefined prospects, and signals for the product.',
         schema: { productName: z.string() },
-        handler: async (input) =>
-          this.productsRepo.getProductKnowledge(input.productName as string),
+        handler: async (input, ctx) =>
+          this.productsRepo.getProductKnowledge(ctx.org.id, input.productName as string),
       },
       {
         name: 'search_companies',
@@ -60,6 +62,7 @@ Your job: find new companies that match the product's ICP using web research.
       {
         name: 'save_lead',
         description: 'Save a discovered prospect to the leads database.',
+        requires: { permission: 'leads:write' },
         schema: {
           productName: z.string(),
           company: z.string(),
@@ -70,10 +73,13 @@ Your job: find new companies that match the product's ICP using web research.
           signals: z.array(z.string()).optional(),
           sourceUrl: z.string().optional(),
         },
-        handler: async (input) =>
-          this.leadsRepo.saveLead(
-            input as unknown as Parameters<LeadsRepository['saveLead']>[0],
-          ),
+        handler: async (input, ctx) => {
+          await this.entitlements.assertLeadQuota(ctx);
+          return this.leadsRepo.saveLead(
+            ctx.org.id,
+            input as unknown as Parameters<LeadsRepository['saveLead']>[1],
+          );
+        },
       },
     ];
   }

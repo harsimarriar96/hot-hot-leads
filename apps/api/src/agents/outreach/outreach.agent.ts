@@ -38,8 +38,8 @@ Return the outreach draft AND save it to the Outreach Queue via \`save_outreach\
         name: 'get_product_knowledge',
         description: 'Get value props, sales channels, and pricing for outreach context.',
         schema: { productName: z.string() },
-        handler: async (input) =>
-          this.productsRepo.getProductKnowledge(input.productName as string),
+        handler: async (input, ctx) =>
+          this.productsRepo.getProductKnowledge(ctx.org.id, input.productName as string),
       },
       {
         name: 'get_lead',
@@ -48,8 +48,8 @@ Return the outreach draft AND save it to the Outreach Queue via \`save_outreach\
           company: z.string(),
           productName: z.string(),
         },
-        handler: async (input) =>
-          this.leadsRepo.queryLeads({
+        handler: async (input, ctx) =>
+          this.leadsRepo.queryLeads(ctx.org.id, {
             productName: input.productName as string,
             company: input.company as string,
             limit: 1,
@@ -58,6 +58,7 @@ Return the outreach draft AND save it to the Outreach Queue via \`save_outreach\
       {
         name: 'save_outreach',
         description: 'Save the outreach draft to the Outreach Queue.',
+        requires: { permission: 'outreach:write' },
         schema: {
           productName: z.string(),
           company: z.string(),
@@ -67,9 +68,10 @@ Return the outreach draft AND save it to the Outreach Queue via \`save_outreach\
           body: z.string(),
           tone: z.enum(['formal', 'casual', 'friendly']).optional(),
         },
-        handler: async (input) =>
+        handler: async (input, ctx) =>
           this.leadsRepo.saveOutreach(
-            input as unknown as Parameters<LeadsRepository['saveOutreach']>[0],
+            ctx.org.id,
+            input as unknown as Parameters<LeadsRepository['saveOutreach']>[1],
           ),
       },
     ];

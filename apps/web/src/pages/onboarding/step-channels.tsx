@@ -110,7 +110,7 @@ export function StepChannels() {
         {error && <p className="text-sm text-[var(--error)]">{error}</p>}
 
         <div className="pt-2 flex justify-between">
-          <Button type="button" variant="ghost" onClick={() => navigate('/onboarding/operator-profile')}>
+          <Button type="button" variant="ghost" onClick={() => navigate('/onboarding/workspace-details')}>
             Back
           </Button>
           <div className="flex gap-2">

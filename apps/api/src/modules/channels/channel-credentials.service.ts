@@ -3,7 +3,6 @@ import axios, { AxiosError } from 'axios';
 import {
   ChannelCredentialsRepository,
   PreferredChannel,
-  Workspace,
   type RedactedCredential,
 } from '@hothotleads/db';
 
@@ -31,31 +30,31 @@ export class ChannelCredentialsService {
     private readonly crypto: CryptoService,
   ) {}
 
-  async save(workspace: Workspace, payload: ChannelCredentialPayload): Promise<void> {
+  async save(orgId: string, payload: ChannelCredentialPayload): Promise<void> {
     await this.validate(payload);
     const plaintext = JSON.stringify(payload.credentials);
     const blob = this.crypto.encrypt(plaintext);
-    await this.repo.save(workspace, payload.channel, blob);
+    await this.repo.save(orgId, payload.channel, blob);
   }
 
-  async load(workspace: Workspace, channel: PreferredChannel.TELEGRAM): Promise<TelegramCredentials | null>;
-  async load(workspace: Workspace, channel: PreferredChannel.WHATSAPP): Promise<WhatsAppCredentials | null>;
+  async load(orgId: string, channel: PreferredChannel.TELEGRAM): Promise<TelegramCredentials | null>;
+  async load(orgId: string, channel: PreferredChannel.WHATSAPP): Promise<WhatsAppCredentials | null>;
   async load(
-    workspace: Workspace,
+    orgId: string,
     channel: PreferredChannel,
   ): Promise<TelegramCredentials | WhatsAppCredentials | null> {
-    const blob = await this.repo.load(workspace, channel);
+    const blob = await this.repo.load(orgId, channel);
     if (!blob) return null;
     const plaintext = this.crypto.decrypt(blob);
     return JSON.parse(plaintext);
   }
 
-  async list(workspace: Workspace): Promise<RedactedCredential[]> {
-    return this.repo.list(workspace);
+  async list(orgId: string): Promise<RedactedCredential[]> {
+    return this.repo.list(orgId);
   }
 
-  async remove(workspace: Workspace, channel: PreferredChannel): Promise<void> {
-    await this.repo.remove(workspace, channel);
+  async remove(orgId: string, channel: PreferredChannel): Promise<void> {
+    await this.repo.remove(orgId, channel);
   }
 
   private async validate(payload: ChannelCredentialPayload): Promise<void> {

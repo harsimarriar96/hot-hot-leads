@@ -12,7 +12,8 @@ import type { ProductDetail } from '@/lib/products';
 
 interface LeadExplainSheetProps {
   lead: Lead | null;
-  product: ProductDetail;
+  /** Needed for the ICP comparison rows; the rest of the sheet renders without it. */
+  product?: ProductDetail | null;
   onOpenChange: (v: boolean) => void;
 }
 
@@ -26,8 +27,8 @@ export function LeadExplainSheet({ lead, product, onOpenChange }: LeadExplainShe
   );
 }
 
-function Content({ lead, product }: { lead: Lead; product: ProductDetail }) {
-  const icp = product.icp;
+function Content({ lead, product }: { lead: Lead; product?: ProductDetail | null }) {
+  const icp = product?.icp;
   const contactLine = [lead.contactName, lead.contactTitle].filter(Boolean).join(' · ');
   return (
     <>

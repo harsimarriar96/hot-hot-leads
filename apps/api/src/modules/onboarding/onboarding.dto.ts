@@ -1,8 +1,6 @@
 import { Type } from 'class-transformer';
 import {
   IsArray,
-  IsEmail,
-  IsEnum,
   IsOptional,
   IsString,
   Length,
@@ -11,15 +9,14 @@ import {
   ValidateNested,
 } from 'class-validator';
 
-import { PreferredChannel } from '@hothotleads/db';
-
 function isValidTimezone(tz: unknown): boolean {
   if (typeof tz !== 'string' || !tz.length) return false;
+  // Newer ICU builds list only canonical names in supportedValuesOf (no "UTC", no
+  // "Asia/Kolkata"), so a zone the formatter accepts is valid even when it is not listed.
+  const supported = (Intl as unknown as { supportedValuesOf?: (key: string) => string[] })
+    .supportedValuesOf?.('timeZone');
+  if (supported?.includes(tz)) return true;
   try {
-    const supported = (Intl as unknown as { supportedValuesOf?: (key: string) => string[] })
-      .supportedValuesOf?.('timeZone');
-    if (supported) return supported.includes(tz);
-    // Fallback — attempt to construct a DateTimeFormat with the zone
     new Intl.DateTimeFormat('en-US', { timeZone: tz });
     return true;
   } catch {
@@ -47,18 +44,6 @@ export class WorkspaceDetailsDto {
       throw new Error(`Invalid timezone: ${this.timezone}`);
     }
   }
-}
-
-export class OperatorProfileDto {
-  @IsString()
-  @Length(1, 80)
-  name!: string;
-
-  @IsEmail()
-  email!: string;
-
-  @IsEnum(PreferredChannel)
-  preferredChannel!: PreferredChannel;
 }
 
 export class TelegramCredentialsDto {

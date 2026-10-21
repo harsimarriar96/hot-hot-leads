@@ -1,32 +1,28 @@
 import { BadRequestException, ConflictException, Injectable, Logger } from '@nestjs/common';
 import { EntityManager } from '@mikro-orm/postgresql';
 import {
+  MembershipRole,
+  MembershipsRepository,
   OnboardingStatus,
+  Organization,
   PreferredChannel,
   Product,
   ProductIcp,
-  Workspace,
+  slugify,
 } from '@hothotleads/db';
 
-import { WorkspaceService } from '../workspace/workspace.service';
-import { OperatorService } from '../operator/operator.service';
+import { OrganizationService } from '../organization/organization.service';
 import { ChannelCredentialsService } from '../channels/channel-credentials.service';
-import {
-  ChannelsStepDto,
-  FirstProductDto,
-  OperatorProfileDto,
-  WorkspaceDetailsDto,
-  isValidTimezone,
-} from './onboarding.dto';
+import { EntitlementsService } from '../auth/entitlements.service';
+import { denial, requireOrg, type OrgContext, type TenantContext } from '../auth/tenant-context';
+import { ChannelsStepDto, FirstProductDto, WorkspaceDetailsDto, isValidTimezone } from './onboarding.dto';
 
-const TRANSITIONS: Record<OnboardingStatus, OnboardingStatus | null> = {
-  [OnboardingStatus.PENDING]: OnboardingStatus.WORKSPACE_DETAILS,
-  [OnboardingStatus.WORKSPACE_DETAILS]: OnboardingStatus.OPERATOR_PROFILE,
-  [OnboardingStatus.OPERATOR_PROFILE]: OnboardingStatus.CHANNELS,
-  [OnboardingStatus.CHANNELS]: OnboardingStatus.FIRST_PRODUCT,
-  [OnboardingStatus.FIRST_PRODUCT]: OnboardingStatus.COMPLETED,
-  [OnboardingStatus.COMPLETED]: null,
-};
+/** Steps in order. `operator_profile` is no longer a step: the account carries the profile. */
+const STEP_ORDER = [
+  OnboardingStatus.WORKSPACE_DETAILS,
+  OnboardingStatus.CHANNELS,
+  OnboardingStatus.FIRST_PRODUCT,
+];
 
 export interface OnboardingStatusView {
   status: OnboardingStatus;
@@ -34,7 +30,6 @@ export interface OnboardingStatusView {
   completedSteps: OnboardingStatus[];
   data: {
     workspace_details?: { name: string; timezone: string; defaultCurrency: string };
-    operator_profile?: { name: string; email: string; preferredChannel: PreferredChannel };
     channels?: { channel: PreferredChannel; configured: boolean; updatedAt: Date }[];
     first_product?: { name: string };
   };
@@ -46,114 +41,102 @@ export class OnboardingService {
 
   constructor(
     private readonly em: EntityManager,
-    private readonly workspaceSvc: WorkspaceService,
-    private readonly operatorSvc: OperatorService,
+    private readonly orgSvc: OrganizationService,
+    private readonly membershipsRepo: MembershipsRepository,
     private readonly channelsSvc: ChannelCredentialsService,
+    private readonly entitlements: EntitlementsService,
   ) {}
 
-  async getStatus(): Promise<OnboardingStatusView> {
-    const ws = await this.workspaceSvc.get();
-    if (!ws) {
+  async getStatus(ctx: TenantContext): Promise<OnboardingStatusView> {
+    const org = ctx.org ? await this.orgSvc.get(ctx.org.id) : null;
+    if (!org) {
       return {
         status: OnboardingStatus.PENDING,
-        currentStep: OnboardingStatus.PENDING,
+        currentStep: OnboardingStatus.WORKSPACE_DETAILS,
         completedSteps: [],
         data: {},
       };
     }
-    const operator = await this.operatorSvc.getCurrent();
-    const channels = await this.channelsSvc.list(ws);
+    const channels = await this.channelsSvc.list(org.id);
 
     const data: OnboardingStatusView['data'] = {
-      workspace_details: { name: ws.name, timezone: ws.timezone, defaultCurrency: ws.defaultCurrency },
+      workspace_details: { name: org.name, timezone: org.timezone, defaultCurrency: org.defaultCurrency },
     };
-    if (operator) {
-      data.operator_profile = {
-        name: operator.name,
-        email: operator.email,
-        preferredChannel: operator.preferredChannel ?? PreferredChannel.TELEGRAM,
-      };
-    }
     if (channels.length > 0) data.channels = channels;
 
-    const em = this.em.fork();
-    const products = await em.find(Product, {}, { limit: 1 });
+    const products = await this.em.fork().find(Product, { organization: org.id }, { limit: 1 });
     if (products.length > 0) data.first_product = { name: products[0].name };
 
     return {
-      status: ws.onboardingStatus,
-      currentStep: this.currentStep(ws.onboardingStatus),
-      completedSteps: this.completedSteps(ws.onboardingStatus),
+      status: org.onboardingStatus,
+      currentStep: this.currentStep(org.onboardingStatus),
+      completedSteps: this.completedSteps(org.onboardingStatus),
       data,
     };
   }
 
-  async submitWorkspaceDetails(dto: WorkspaceDetailsDto): Promise<Workspace> {
+  /** Creates the organization on first submit; the caller becomes its owner. */
+  async submitWorkspaceDetails(ctx: TenantContext, dto: WorkspaceDetailsDto): Promise<Organization> {
     if (!isValidTimezone(dto.timezone)) {
       throw new BadRequestException({ field: 'timezone', message: 'Invalid IANA timezone' });
     }
-    const ws = await this.workspaceSvc.get();
-    const currentStatus = ws?.onboardingStatus ?? OnboardingStatus.PENDING;
+    const existing = ctx.org ? await this.orgSvc.get(ctx.org.id) : null;
+    const currentStatus = existing?.onboardingStatus ?? OnboardingStatus.PENDING;
     if (currentStatus !== OnboardingStatus.PENDING && currentStatus !== OnboardingStatus.WORKSPACE_DETAILS) {
       throw new ConflictException(`Cannot submit workspace_details; current status is ${currentStatus}`);
     }
-    const updated = await this.workspaceSvc.createOrUpdate({
+    const details = {
       name: dto.name,
       timezone: dto.timezone,
       defaultCurrency: dto.defaultCurrency ?? 'USD',
-    });
-    if (updated.onboardingStatus === OnboardingStatus.PENDING) {
-      return this.workspaceSvc.setStatus(OnboardingStatus.OPERATOR_PROFILE);
+    };
+    if (existing) {
+      if (!ctx.permissions.has('org:update')) {
+        throw denial({ code: 'permission_denied', message: 'Your role does not allow org:update', permission: 'org:update' });
+      }
+      await this.orgSvc.update(existing.id, details);
+      return this.orgSvc.setStatus(existing.id, OnboardingStatus.CHANNELS);
     }
-    if (updated.onboardingStatus === OnboardingStatus.WORKSPACE_DETAILS) {
-      return this.workspaceSvc.advanceStatus(
-        OnboardingStatus.WORKSPACE_DETAILS,
-        OnboardingStatus.OPERATOR_PROFILE,
-      );
-    }
-    return updated;
+    // A user with no organization creates one and becomes its owner.
+    const org = await this.orgSvc.create({ ...details, onboardingStatus: OnboardingStatus.CHANNELS });
+    await this.membershipsRepo.create(ctx.user.id, org.id, MembershipRole.OWNER);
+    return org;
   }
 
-  async submitOperatorProfile(dto: OperatorProfileDto): Promise<void> {
-    const ws = await this.workspaceSvc.getRequired();
-    if (ws.onboardingStatus !== OnboardingStatus.OPERATOR_PROFILE) {
-      throw new ConflictException(`Cannot submit operator_profile; current status is ${ws.onboardingStatus}`);
-    }
-    await this.operatorSvc.upsert(ws, {
-      name: dto.name,
-      email: dto.email,
-      preferredChannel: dto.preferredChannel,
-    });
-    await this.workspaceSvc.advanceStatus(OnboardingStatus.OPERATOR_PROFILE, OnboardingStatus.CHANNELS);
-  }
-
-  async submitChannels(dto: ChannelsStepDto): Promise<void> {
-    const ws = await this.workspaceSvc.getRequired();
-    if (ws.onboardingStatus !== OnboardingStatus.CHANNELS) {
-      throw new ConflictException(`Cannot submit channels; current status is ${ws.onboardingStatus}`);
+  async submitChannels(ctx: TenantContext, dto: ChannelsStepDto): Promise<void> {
+    const { org } = requireOrg(ctx);
+    const current = await this.orgSvc.getRequired(org.id);
+    if (current.onboardingStatus !== OnboardingStatus.CHANNELS) {
+      throw new ConflictException(`Cannot submit channels; current status is ${current.onboardingStatus}`);
     }
     if (dto.telegram) {
-      await this.channelsSvc.save(ws, { channel: PreferredChannel.TELEGRAM, credentials: dto.telegram });
+      this.entitlements.assertChannelAllowed(ctx as OrgContext, 'telegram');
+      await this.channelsSvc.save(org.id, { channel: PreferredChannel.TELEGRAM, credentials: dto.telegram });
     }
     if (dto.whatsapp) {
-      await this.channelsSvc.save(ws, { channel: PreferredChannel.WHATSAPP, credentials: dto.whatsapp });
+      this.entitlements.assertChannelAllowed(ctx as OrgContext, 'whatsapp');
+      await this.channelsSvc.save(org.id, { channel: PreferredChannel.WHATSAPP, credentials: dto.whatsapp });
     }
-    await this.workspaceSvc.advanceStatus(OnboardingStatus.CHANNELS, OnboardingStatus.FIRST_PRODUCT);
+    await this.orgSvc.advanceStatus(org.id, OnboardingStatus.CHANNELS, OnboardingStatus.FIRST_PRODUCT);
   }
 
-  async submitFirstProduct(dto: FirstProductDto): Promise<Product> {
-    const ws = await this.workspaceSvc.getRequired();
-    if (ws.onboardingStatus !== OnboardingStatus.FIRST_PRODUCT) {
-      throw new ConflictException(`Cannot submit first_product; current status is ${ws.onboardingStatus}`);
+  async submitFirstProduct(ctx: TenantContext, dto: FirstProductDto): Promise<Product> {
+    const orgCtx = requireOrg(ctx);
+    const { org } = orgCtx;
+    await this.entitlements.assertCanCreateProduct(orgCtx);
+    const current = await this.orgSvc.getRequired(org.id);
+    if (current.onboardingStatus !== OnboardingStatus.FIRST_PRODUCT) {
+      throw new ConflictException(`Cannot submit first_product; current status is ${current.onboardingStatus}`);
     }
     const em = this.em.fork();
     const slug = slugify(dto.name);
     const product = await em.transactional(async (tx) => {
-      const existing = await tx.findOne(Product, { name: dto.name });
+      const existing = await tx.findOne(Product, { organization: org.id, name: dto.name });
       if (existing) throw new ConflictException(`Product "${dto.name}" already exists`);
       const p = tx.create(
         Product,
         {
+          organization: tx.getReference(Organization, org.id),
           name: dto.name,
           slug,
           generalInfo: dto.generalInfo,
@@ -175,40 +158,32 @@ export class OnboardingService {
       return p;
     });
 
-    await this.workspaceSvc.setStatus(OnboardingStatus.COMPLETED);
-    this.logger.log(`Onboarding complete — workspace ${ws.id}, product ${product.id}`);
+    await this.orgSvc.setStatus(org.id, OnboardingStatus.COMPLETED);
+    this.logger.log(`Onboarding complete — organization ${org.id}, product ${product.id}`);
     return product;
   }
 
-  async reset(): Promise<void> {
-    await this.workspaceSvc.reset();
-    this.logger.warn('Onboarding reset — workspace and all operators/channels wiped');
+  /** Restart the wizard for this organization. Products and members are kept. */
+  async reset(ctx: TenantContext): Promise<void> {
+    const { org } = requireOrg(ctx);
+    for (const cred of await this.channelsSvc.list(org.id)) {
+      await this.channelsSvc.remove(org.id, cred.channel);
+    }
+    await this.orgSvc.setStatus(org.id, OnboardingStatus.PENDING);
+    this.logger.warn(`Onboarding reset for organization ${org.id}`);
   }
 
   private currentStep(status: OnboardingStatus): OnboardingStatus {
     if (status === OnboardingStatus.COMPLETED) return OnboardingStatus.COMPLETED;
     if (status === OnboardingStatus.PENDING) return OnboardingStatus.WORKSPACE_DETAILS;
+    if (status === OnboardingStatus.OPERATOR_PROFILE) return OnboardingStatus.CHANNELS;
     return status;
   }
 
   private completedSteps(status: OnboardingStatus): OnboardingStatus[] {
-    const order = [
-      OnboardingStatus.WORKSPACE_DETAILS,
-      OnboardingStatus.OPERATOR_PROFILE,
-      OnboardingStatus.CHANNELS,
-      OnboardingStatus.FIRST_PRODUCT,
-    ];
-    const index = order.indexOf(status);
-    if (status === OnboardingStatus.COMPLETED) return order;
+    if (status === OnboardingStatus.COMPLETED) return STEP_ORDER;
+    const index = STEP_ORDER.indexOf(this.currentStep(status));
     if (index <= 0) return [];
-    return order.slice(0, index);
+    return STEP_ORDER.slice(0, index);
   }
-}
-
-function slugify(name: string): string {
-  return name
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '');
 }

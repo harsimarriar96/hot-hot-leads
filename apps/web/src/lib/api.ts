@@ -20,5 +20,5 @@ export const api = {
     getJSON<Outreach[]>(`/api/outreach?product=${encodeURIComponent(product)}`),
   feedback: (product: string) =>
     getJSON<Feedback[]>(`/api/feedback?product=${encodeURIComponent(product)}`),
-  chat: (text: string, userId = 'web-demo') => postJson<ChatReply>('/api/chat', { text, userId }),
+  chat: (text: string) => postJson<ChatReply>('/api/chat', { text }),
 };

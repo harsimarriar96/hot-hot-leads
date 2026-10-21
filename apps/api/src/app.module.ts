@@ -16,6 +16,8 @@ import { SettingsModule } from './modules/settings/settings.module';
 import { ProductsModule } from './modules/products/products.module';
 import { ProductChatModule } from './modules/chat/chat.module';
 import { AdminModule } from './modules/admin/admin.module';
+import { OrganizationModule } from './modules/organization/organization.module';
+import { PlatformModule } from './modules/platform/platform.module';
 import { SchedulesApiModule } from './modules/schedules/schedules.module';
 import { HealthController } from './health.controller';
 import { ChatController } from './chat.controller';
@@ -47,6 +49,8 @@ const schedulesEnabled = configuration().features.schedules;
     ProductsModule,
     ProductChatModule,
     AdminModule,
+    OrganizationModule,
+    PlatformModule,
     ...(schedulesEnabled ? [AppSchedulerModule, SchedulesApiModule] : []),
   ],
   controllers: [HealthController, ChatController, ReportsController],

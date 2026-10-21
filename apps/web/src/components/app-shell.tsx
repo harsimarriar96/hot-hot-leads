@@ -1,27 +1,15 @@
-import { NavLink, Outlet, useLocation } from 'react-router-dom';
-import {
-  Clock,
-  LayoutDashboard,
-  LogOut,
-  MessagesSquare,
-  Package,
-  Settings,
-} from 'lucide-react';
+import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { ShieldCheck } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { setToken } from '@/lib/http';
 import { Badge } from './ui/badge';
 import { ThemeToggle } from './theme-toggle';
 import { ProductSwitcher } from './product-switcher';
+import { OrgSwitcher } from './org-switcher';
+import { UserMenu } from './user-menu';
 import { AgentActivityStrip } from './agent-activity-strip';
 import { useCommandPalette } from '@/hooks/use-command-palette';
-
-const nav = [
-  { to: '/products', label: 'Products', icon: Package, end: false },
-  { to: '/chat', label: 'Chat', icon: MessagesSquare, end: true },
-  { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, end: false },
-  { to: '/schedules', label: 'Schedules', icon: Clock, end: false, soon: true },
-  { to: '/settings', label: 'Settings', icon: Settings, end: false },
-] as const;
+import { useNavItems } from '@/hooks/use-nav-items';
+import { useAuth } from '@/hooks/use-auth';
 
 function Logo({ className }: { className?: string }) {
   const counter = 'fill-[var(--app)]';
@@ -61,6 +49,7 @@ function Logo({ className }: { className?: string }) {
 
 function PageHeader() {
   const loc = useLocation();
+  const nav = useNavItems();
   const active = nav.find((n) => (n.end ? loc.pathname === n.to : loc.pathname.startsWith(n.to)));
   const title = active?.label ?? 'HotHotLeads';
   return (
@@ -92,6 +81,8 @@ function CommandHint() {
 }
 
 function DesktopSidebar() {
+  const nav = useNavItems();
+  const { isPlatformAdmin } = useAuth();
   return (
     <aside className="hidden md:flex w-56 shrink-0 flex-col border-r border-[var(--border)] bg-[var(--surface-2)]">
       <div className="flex items-center h-12 px-4 border-b border-[var(--border)]">
@@ -99,9 +90,12 @@ function DesktopSidebar() {
           <Logo className="h-7" />
         </NavLink>
       </div>
+      <div className="px-2 pt-2">
+        <OrgSwitcher />
+      </div>
       <CommandHint />
       <nav className="flex-1 flex flex-col gap-0.5 px-2 py-3">
-        {nav.map(({ to, icon: Icon, label, end, ...item }) => (
+        {nav.map(({ to, icon: Icon, label, end, soon }) => (
           <NavLink
             key={to}
             to={to}
@@ -120,7 +114,7 @@ function DesktopSidebar() {
               <>
                 <Icon className={cn('h-4 w-4', isActive && 'text-[var(--accent)]')} />
                 <span className="truncate">{label}</span>
-                {'soon' in item && item.soon && <Badge className="ml-auto">Soon</Badge>}
+                {soon && <Badge className="ml-auto">Soon</Badge>}
                 {isActive && (
                   <span
                     aria-hidden
@@ -132,15 +126,17 @@ function DesktopSidebar() {
           </NavLink>
         ))}
       </nav>
-      <div className="px-2 pb-3">
-        <button
-          type="button"
-          onClick={() => setToken(null)}
-          className="flex items-center gap-2.5 h-9 w-full px-2.5 rounded-md text-sm text-[var(--text-secondary)] hover:text-[var(--text)] hover:bg-[var(--surface-hover)] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
-        >
-          <LogOut className="h-4 w-4" />
-          <span>Sign out</span>
-        </button>
+      <div className="px-2 pb-3 space-y-1">
+        {isPlatformAdmin && (
+          <NavLink
+            to="/platform"
+            className="flex items-center gap-2.5 h-9 px-2.5 rounded-md text-sm text-[var(--text-secondary)] hover:text-[var(--text)] hover:bg-[var(--surface-hover)] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
+          >
+            <ShieldCheck className="h-4 w-4" />
+            <span>Platform</span>
+          </NavLink>
+        )}
+        <UserMenu />
       </div>
     </aside>
   );
@@ -155,15 +151,18 @@ function MobileTopBar() {
       <div className="flex items-center gap-2">
         <ProductSwitcher />
         <ThemeToggle />
+        <UserMenu compact />
       </div>
     </header>
   );
 }
 
 function MobileTabBar() {
+  const nav = useNavItems();
   return (
     <nav className="md:hidden fixed bottom-0 inset-x-0 z-30 border-t border-[var(--border)] bg-[var(--surface)] pb-[env(safe-area-inset-bottom)]">
-      <div className="grid grid-cols-5">
+      {/* Column count follows the entitlement-filtered items; Tailwind cannot generate it dynamically. */}
+      <div className="grid" style={{ gridTemplateColumns: `repeat(${nav.length}, minmax(0, 1fr))` }}>
         {nav.map(({ to, icon: Icon, label, end }) => (
           <NavLink
             key={to}
@@ -190,16 +189,38 @@ function MobileTabBar() {
   );
 }
 
+function SupportModeBanner() {
+  const { activeOrg, isSupportMode, organizations, switchOrganization } = useAuth();
+  const navigate = useNavigate();
+  if (!isSupportMode || !activeOrg) return null;
+  return (
+    <div className="flex items-center justify-between gap-3 h-7 px-4 bg-[var(--accent-soft)] text-[var(--accent-soft-text)] text-xs">
+      <span className="truncate">
+        Support mode · <strong>{activeOrg.name}</strong>
+      </span>
+      <button
+        type="button"
+        className="font-medium underline-offset-2 hover:underline"
+        onClick={() => void switchOrganization(organizations[0]?.id ?? null).then(() => navigate('/platform'))}
+      >
+        Exit
+      </button>
+    </div>
+  );
+}
+
 export function AppShell() {
   return (
     <div className="flex flex-col h-full bg-[var(--app)]">
+      <SupportModeBanner />
       <AgentActivityStrip />
       <div className="flex flex-1 min-h-0">
         <DesktopSidebar />
         <div className="flex-1 flex flex-col min-w-0 pb-16 md:pb-0">
           <MobileTopBar />
           <PageHeader />
-          <main className="flex-1 min-h-0">
+          {/* The page scrolls inside main so the sidebar and header stay put. */}
+          <main className="flex-1 min-h-0 overflow-y-auto">
             <Outlet />
           </main>
         </div>

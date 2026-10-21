@@ -10,9 +10,11 @@ import { productsApi, type ProductDetail } from '@/lib/products';
 interface Props {
   product: ProductDetail;
   onChanged: () => void;
+  /** Viewers see the data but no Save / Add / Edit / Delete controls. */
+  readOnly?: boolean;
 }
 
-export function ProductOverviewTab({ product, onChanged }: Props) {
+export function ProductOverviewTab({ product, onChanged, readOnly = false }: Props) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [name, setName] = useState(product.name);
@@ -73,6 +75,7 @@ export function ProductOverviewTab({ product, onChanged }: Props) {
               value={name}
               onChange={(e) => bindSet(setName)(e.target.value)}
               maxLength={80}
+              disabled={readOnly}
             />
           </FieldGroup>
           <FieldGroup>
@@ -82,6 +85,7 @@ export function ProductOverviewTab({ product, onChanged }: Props) {
               rows={3}
               value={generalInfo}
               onChange={(e) => bindSet(setGeneralInfo)(e.target.value)}
+              disabled={readOnly}
               className="w-full rounded-md border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm focus:outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--ring)]"
             />
           </FieldGroup>
@@ -92,6 +96,7 @@ export function ProductOverviewTab({ product, onChanged }: Props) {
               rows={4}
               value={salesStrategy}
               onChange={(e) => bindSet(setSalesStrategy)(e.target.value)}
+              disabled={readOnly}
               className="w-full rounded-md border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm focus:outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--ring)]"
             />
           </FieldGroup>
@@ -102,23 +107,27 @@ export function ProductOverviewTab({ product, onChanged }: Props) {
               rows={3}
               value={pricing}
               onChange={(e) => bindSet(setPricing)(e.target.value)}
+              disabled={readOnly}
               className="w-full rounded-md border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm focus:outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--ring)]"
             />
           </FieldGroup>
           {error && <p className="text-sm text-[var(--error)]">{error}</p>}
-          <div className="flex justify-end">
-            <Button onClick={saveBasics} disabled={saving}>
-              {saving ? 'Saving…' : 'Save'}
-            </Button>
-          </div>
+          {!readOnly && (
+            <div className="flex justify-end">
+              <Button onClick={saveBasics} disabled={saving}>
+                {saving ? 'Saving…' : 'Save'}
+              </Button>
+            </div>
+          )}
         </div>
       </section>
 
-      <AgentSection product={product} onChanged={onChanged} />
-      <IcpSection product={product} onChanged={onChanged} />
+      <AgentSection product={product} onChanged={onChanged} readOnly={readOnly} />
+      <IcpSection product={product} onChanged={onChanged} readOnly={readOnly} />
       <ChildEditorSection
         product={product}
         onChanged={onChanged}
+        readOnly={readOnly}
         kind="sales-channels"
         heading="Sales channels"
         items={product.salesChannels.map((c) => ({
@@ -131,6 +140,7 @@ export function ProductOverviewTab({ product, onChanged }: Props) {
       <ChildEditorSection
         product={product}
         onChanged={onChanged}
+        readOnly={readOnly}
         kind="sources"
         heading="Sources"
         items={product.sources.map((s) => ({
@@ -143,6 +153,7 @@ export function ProductOverviewTab({ product, onChanged }: Props) {
       <ChildEditorSection
         product={product}
         onChanged={onChanged}
+        readOnly={readOnly}
         kind="predefined-prospects"
         heading="Predefined prospects"
         items={product.predefinedProspects.map((p) => ({
@@ -168,7 +179,7 @@ export function ProductOverviewTab({ product, onChanged }: Props) {
   );
 }
 
-function IcpSection({ product, onChanged }: Props) {
+function IcpSection({ product, onChanged, readOnly = false }: Props) {
   const initial = product.icp;
   const [industries, setIndustries] = useState<string[]>(initial?.targetIndustries ?? []);
   const [sizes, setSizes] = useState<string[]>(initial?.companySizes ?? []);
@@ -210,6 +221,7 @@ function IcpSection({ product, onChanged }: Props) {
             values={industries}
             onChange={setIndustries}
             placeholder="Add industry…"
+            disabled={readOnly}
           />
         </FieldGroup>
         <FieldGroup>
@@ -219,6 +231,7 @@ function IcpSection({ product, onChanged }: Props) {
             values={sizes}
             onChange={setSizes}
             placeholder="Add company size…"
+            disabled={readOnly}
           />
         </FieldGroup>
         <FieldGroup>
@@ -228,6 +241,7 @@ function IcpSection({ product, onChanged }: Props) {
             values={stages}
             onChange={setStages}
             placeholder="Add funding stage…"
+            disabled={readOnly}
           />
         </FieldGroup>
         <FieldGroup>
@@ -237,6 +251,7 @@ function IcpSection({ product, onChanged }: Props) {
             values={geos}
             onChange={setGeos}
             placeholder="Add geography…"
+            disabled={readOnly}
           />
         </FieldGroup>
       </div>
@@ -247,16 +262,19 @@ function IcpSection({ product, onChanged }: Props) {
           rows={3}
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
+          disabled={readOnly}
           className="w-full rounded-md border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm focus:outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--ring)]"
           maxLength={2000}
         />
       </FieldGroup>
       {error && <p className="text-sm text-[var(--error)]">{error}</p>}
-      <div className="flex justify-end">
-        <Button onClick={save} disabled={saving}>
-          {saving ? 'Saving…' : 'Save ICP'}
-        </Button>
-      </div>
+      {!readOnly && (
+        <div className="flex justify-end">
+          <Button onClick={save} disabled={saving}>
+            {saving ? 'Saving…' : 'Save ICP'}
+          </Button>
+        </div>
+      )}
     </section>
   );
 }
@@ -269,6 +287,7 @@ interface ChildItem {
 interface ChildEditorProps {
   product: ProductDetail;
   onChanged: () => void;
+  readOnly?: boolean;
   kind: 'sales-channels' | 'sources' | 'predefined-prospects';
   heading: string;
   items: ChildItem[];
@@ -277,7 +296,7 @@ interface ChildEditorProps {
 }
 
 function ChildEditorSection(props: ChildEditorProps) {
-  const { product, onChanged, kind, heading, items, fieldKeys, fieldLabels } = props;
+  const { product, onChanged, kind, heading, items, fieldKeys, fieldLabels, readOnly = false } = props;
   const [adding, setAdding] = useState(false);
   const [draft, setDraft] = useState<Record<string, string>>({});
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -328,10 +347,12 @@ function ChildEditorSection(props: ChildEditorProps) {
     <section className="space-y-3">
       <div className="flex items-center justify-between">
         <SectionHeading>{heading}</SectionHeading>
-        <Button variant="ghost" size="sm" onClick={() => setAdding(true)}>
-          <Plus className="h-3.5 w-3.5" />
-          Add
-        </Button>
+        {!readOnly && (
+          <Button variant="ghost" size="sm" onClick={() => setAdding(true)}>
+            <Plus className="h-3.5 w-3.5" />
+            Add
+          </Button>
+        )}
       </div>
 
       {items.length === 0 && !adding && (
@@ -347,6 +368,7 @@ function ChildEditorSection(props: ChildEditorProps) {
               fieldKeys={fieldKeys}
               fieldLabels={fieldLabels}
               busy={busyId === item.id}
+              readOnly={readOnly}
               onSave={(body) => patch(item.id, body)}
               onDelete={() => remove(item.id)}
             />
@@ -393,6 +415,7 @@ function ChildRow({
   fieldKeys,
   fieldLabels,
   busy,
+  readOnly = false,
   onSave,
   onDelete,
 }: {
@@ -400,6 +423,7 @@ function ChildRow({
   fieldKeys: string[];
   fieldLabels: Record<string, string>;
   busy: boolean;
+  readOnly?: boolean;
   onSave: (body: Record<string, unknown>) => void;
   onDelete: () => void;
 }) {
@@ -419,12 +443,16 @@ function ChildRow({
             <p className="text-xs text-[var(--text-tertiary)] truncate">{secondary}</p>
           )}
         </div>
-        <Button variant="ghost" size="sm" onClick={() => setEditing(true)}>
-          Edit
-        </Button>
-        <Button variant="ghost" size="sm" onClick={onDelete} disabled={busy} aria-label="Delete">
-          <Trash2 className="h-3.5 w-3.5" />
-        </Button>
+        {!readOnly && (
+          <>
+            <Button variant="ghost" size="sm" onClick={() => setEditing(true)}>
+              Edit
+            </Button>
+            <Button variant="ghost" size="sm" onClick={onDelete} disabled={busy} aria-label="Delete">
+              <Trash2 className="h-3.5 w-3.5" />
+            </Button>
+          </>
+        )}
       </li>
     );
   }
@@ -460,7 +488,7 @@ function ChildRow({
   );
 }
 
-function AgentSection({ product, onChanged }: Props) {
+function AgentSection({ product, onChanged, readOnly = false }: Props) {
   const [tier, setTier] = useState(product.agentModelTier);
   const [extra, setExtra] = useState(product.agentExtraInstructions);
   const [strict, setStrict] = useState(product.icpStrictness);
@@ -504,7 +532,8 @@ function AgentSection({ product, onChanged }: Props) {
               key={t}
               type="button"
               onClick={() => setTier(t)}
-              className={`h-8 flex-1 rounded-md border text-xs font-mono uppercase tracking-[0.08em] transition-colors [@media(pointer:coarse)]:min-h-11 ${
+              disabled={readOnly}
+              className={`h-8 flex-1 rounded-md border disabled:opacity-60 disabled:cursor-not-allowed text-xs font-mono uppercase tracking-[0.08em] transition-colors [@media(pointer:coarse)]:min-h-11 ${
                 tier === t
                   ? 'border-[var(--accent)] bg-[var(--accent-soft)] text-[var(--accent-soft-text)]'
                   : 'border-[var(--border)] bg-[var(--surface)] text-[var(--text-secondary)] hover:bg-[var(--surface-hover)]'
@@ -529,6 +558,7 @@ function AgentSection({ product, onChanged }: Props) {
           step={5}
           value={strict}
           onChange={(e) => setStrict(Number(e.target.value))}
+          disabled={readOnly}
           className="w-full accent-[var(--accent)]"
         />
         <div className="flex justify-between text-[10px] font-mono text-[var(--text-tertiary)]">
@@ -545,6 +575,7 @@ function AgentSection({ product, onChanged }: Props) {
           rows={4}
           value={extra}
           onChange={(e) => setExtra(e.target.value)}
+          disabled={readOnly}
           placeholder="e.g. prefer fintech in US/EU; deprioritise consumer; require recent funding round"
           className="w-full rounded-md border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm focus:outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--ring)]"
           maxLength={4000}
@@ -556,11 +587,13 @@ function AgentSection({ product, onChanged }: Props) {
 
       {error && <p className="text-sm text-[var(--error)]">{error}</p>}
 
-      <div className="flex justify-end">
-        <Button onClick={save} disabled={saving || !dirty}>
-          {saving ? 'Saving…' : 'Save'}
-        </Button>
-      </div>
+      {!readOnly && (
+        <div className="flex justify-end">
+          <Button onClick={save} disabled={saving || !dirty}>
+            {saving ? 'Saving…' : 'Save'}
+          </Button>
+        </div>
+      )}
     </section>
   );
 }

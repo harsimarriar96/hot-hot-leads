@@ -5,17 +5,18 @@ import type { OnboardingStatus } from '@/lib/onboarding';
 
 const STEP_PATHS: Record<Exclude<OnboardingStatus, 'completed' | 'pending'>, string> = {
   workspace_details: '/onboarding/workspace-details',
-  operator_profile: '/onboarding/operator-profile',
+  // The profile now lives on the account; a legacy status value still lands on channels.
+  operator_profile: '/onboarding/channels',
   channels: '/onboarding/channels',
   first_product: '/onboarding/first-product',
 };
 
 const ORDERED_PATHS = [
   '/onboarding/workspace-details',
-  '/onboarding/operator-profile',
   '/onboarding/channels',
   '/onboarding/first-product',
 ];
+const STEP_COUNT = ORDERED_PATHS.length;
 
 export function OnboardingShell() {
   const { data, isLoading, refetch } = useOnboardingStatus();
@@ -58,13 +59,13 @@ export function OnboardingShell() {
           <div className="flex items-center justify-between text-xs font-mono text-[var(--text-tertiary)]">
             <span>Setup</span>
             <span>
-              {stepNumber}&thinsp;/&thinsp;4
+              {stepNumber}&thinsp;/&thinsp;{STEP_COUNT}
             </span>
           </div>
           <div className="mt-2 h-[2px] w-full bg-[var(--surface-2)] overflow-hidden">
             <div
               className="h-full bg-[var(--accent)] transition-all duration-300"
-              style={{ width: `${(stepNumber / 4) * 100}%` }}
+              style={{ width: `${(stepNumber / STEP_COUNT) * 100}%` }}
             />
           </div>
         </header>

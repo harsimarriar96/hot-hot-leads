@@ -3,6 +3,7 @@ import { useOutletContext, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { onboardingApi } from '@/lib/onboarding';
+import { useAuth } from '@/hooks/use-auth';
 import type { OnboardingOutletContext } from './onboarding-shell';
 
 function supportedTimezones(): string[] {
@@ -17,8 +18,9 @@ function supportedTimezones(): string[] {
 export function StepWorkspaceDetails() {
   const { refreshStatus, data } = useOutletContext<OnboardingOutletContext>();
   const navigate = useNavigate();
+  const { activeOrg, refresh } = useAuth();
   const prefill = data?.data.workspace_details;
-  const [name, setName] = useState(prefill?.name ?? '');
+  const [name, setName] = useState(prefill?.name ?? activeOrg?.name ?? '');
   const [timezone, setTimezone] = useState(prefill?.timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone);
   const [currency, setCurrency] = useState(prefill?.defaultCurrency ?? 'USD');
   const [submitting, setSubmitting] = useState(false);
@@ -32,8 +34,8 @@ export function StepWorkspaceDetails() {
     setSubmitting(true);
     try {
       await onboardingApi.workspaceDetails({ name: name.trim(), timezone, defaultCurrency: currency });
-      await refreshStatus();
-      navigate('/onboarding/operator-profile');
+      await Promise.all([refreshStatus(), refresh()]);
+      navigate('/onboarding/channels');
     } catch (err) {
       setError((err as Error).message);
     } finally {
@@ -43,13 +45,13 @@ export function StepWorkspaceDetails() {
 
   return (
     <section>
-      <h1 className="text-xl font-semibold tracking-tight">Workspace</h1>
+      <h1 className="text-xl font-semibold tracking-tight">Organization</h1>
       <p className="mt-1 text-sm text-[var(--text-secondary)]">
-        Basics for your deployment.
+        Basics for your organization.
       </p>
 
       <form onSubmit={onSubmit} className="mt-6 space-y-4">
-        <Field label="Workspace name" htmlFor="ws-name" required>
+        <Field label="Organization name" htmlFor="ws-name" required>
           <Input
             id="ws-name"
             required

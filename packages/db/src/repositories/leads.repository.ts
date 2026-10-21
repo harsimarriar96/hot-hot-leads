@@ -4,6 +4,7 @@ import { Lead } from '../entities/lead.entity';
 import { OutreachDraft } from '../entities/outreach-draft.entity';
 import { Product } from '../entities/product.entity';
 import { LeadStatus, OutreachTone } from '../enums';
+import { requireProduct } from './products.repository';
 
 export interface SaveLeadInput {
   productName: string;
@@ -50,13 +51,14 @@ export interface QueryLeadsInput {
 export class LeadsRepository {
   constructor(private readonly em: EntityManager) {}
 
-  async saveLead(input: SaveLeadInput): Promise<{ id: string; company: string }> {
+  async saveLead(orgId: string, input: SaveLeadInput): Promise<{ id: string; company: string }> {
     const em = this.em.fork();
-    const product = await em.findOneOrFail(Product, { name: input.productName });
+    const product = await requireProduct(em, orgId, input.productName);
 
     let lead: Lead;
     if (input.id) {
-      lead = await em.findOneOrFail(Lead, { id: input.id });
+      // The id must belong to this product; a foreign id is "not found", never silently updated.
+      lead = await em.findOneOrFail(Lead, { id: input.id, product });
     } else if (input.domain) {
       lead =
         (await em.findOne(Lead, { product, domain: input.domain })) ??
@@ -70,9 +72,9 @@ export class LeadsRepository {
     return { id: lead.id, company: lead.company };
   }
 
-  async queryLeads(input: QueryLeadsInput): Promise<Lead[]> {
+  async queryLeads(orgId: string, input: QueryLeadsInput): Promise<Lead[]> {
     const em = this.em.fork();
-    const product = await em.findOne(Product, { name: input.productName });
+    const product = await em.findOne(Product, { organization: orgId, name: input.productName });
     if (!product) return [];
 
     const where: Record<string, unknown> = { product };
@@ -86,13 +88,13 @@ export class LeadsRepository {
     });
   }
 
-  async saveOutreach(input: SaveOutreachInput): Promise<{ id: string; leadId: string }> {
+  async saveOutreach(orgId: string, input: SaveOutreachInput): Promise<{ id: string; leadId: string }> {
     const em = this.em.fork();
-    const product = await em.findOneOrFail(Product, { name: input.productName });
+    const product = await requireProduct(em, orgId, input.productName);
 
     let lead: Lead | null = null;
     if (input.leadId) {
-      lead = await em.findOne(Lead, { id: input.leadId });
+      lead = await em.findOne(Lead, { id: input.leadId, product });
     } else {
       lead = await em.findOne(Lead, { product, company: input.company });
     }
@@ -121,8 +123,15 @@ export class LeadsRepository {
     return { id: draft.id, leadId: lead.id };
   }
 
-  async getLead(id: string): Promise<Lead | null> {
-    return this.em.findOne(Lead, { id }, { populate: ['product', 'outreachDrafts'] });
+  async getLead(orgId: string, id: string): Promise<Lead | null> {
+    return this.em
+      .fork()
+      .findOne(Lead, { id, product: { organization: orgId } }, { populate: ['product', 'outreachDrafts'] });
+  }
+
+  /** Leads created in an organization since a point in time (for monthly quotas). */
+  async countCreatedSince(orgId: string, since: Date): Promise<number> {
+    return this.em.fork().count(Lead, { product: { organization: orgId }, createdAt: { $gte: since } });
   }
 }
 

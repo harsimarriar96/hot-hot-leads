@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter } from 'react-router-dom';
 import App from './App';
 import { AgentActivityProvider } from './hooks/use-agent-activity';
+import { AuthProvider } from './hooks/use-auth';
 import { ToastProvider } from './hooks/use-toast';
 import { CommandPaletteProvider } from './hooks/use-command-palette';
 import { HttpError, getToken, subscribeToken } from './lib/http';
@@ -20,7 +21,7 @@ const queryClient = new QueryClient({
   },
 });
 
-// Signing out must never leave another operator's data in the cache.
+// Signing out must never leave another user's data in the cache.
 subscribeToken(() => {
   if (!getToken()) queryClient.clear();
 });
@@ -29,13 +30,15 @@ createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
-        <AgentActivityProvider>
-          <ToastProvider>
-            <CommandPaletteProvider>
-              <App />
-            </CommandPaletteProvider>
-          </ToastProvider>
-        </AgentActivityProvider>
+        <AuthProvider>
+          <AgentActivityProvider>
+            <ToastProvider>
+              <CommandPaletteProvider>
+                <App />
+              </CommandPaletteProvider>
+            </ToastProvider>
+          </AgentActivityProvider>
+        </AuthProvider>
       </BrowserRouter>
     </QueryClientProvider>
   </StrictMode>

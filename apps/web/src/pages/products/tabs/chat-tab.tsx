@@ -9,6 +9,9 @@ import {
 } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { useAgentActivity } from '@/hooks/use-agent-activity';
+import { useAuth } from '@/hooks/use-auth';
+import { FEATURE_LABELS } from '@/components/gate';
+import type { DenialBody } from '@hothotleads/types';
 import { ProductPipelineStrip } from '@/components/product-pipeline-strip';
 import {
   productChatApi,
@@ -41,6 +44,9 @@ export function ProductChatTab({
   const listRef = useRef<HTMLDivElement | null>(null);
   const toast = useToast();
   const activity = useAgentActivity();
+  const { can } = useAuth();
+  const canRun = can('agents:run');
+  const canClear = can('chat:write');
 
   // rAF-batched pending text for the assistant message in-flight.
   const pendingTextRef = useRef<string>('');
@@ -79,7 +85,7 @@ export function ProductChatTab({
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const trimmed = text.trim();
-    if (!trimmed || busy) return;
+    if (!trimmed || busy || !canRun) return;
     setBusy(true);
     setError(null);
     setText('');
@@ -206,7 +212,7 @@ export function ProductChatTab({
             break;
           }
           case 'error': {
-            const msg = (event as unknown as { message: string }).message;
+            const msg = friendlyDenial(event as unknown as Partial<DenialBody> & { message: string });
             setMessages((prev) =>
               prev.map((m) =>
                 m.id === tempAssistantId
@@ -279,9 +285,11 @@ export function ProductChatTab({
         <p className="text-xs font-mono text-[var(--text-tertiary)]">
           {messages.length} message{messages.length === 1 ? '' : 's'}
         </p>
-        <Button type="button" variant="ghost" size="sm" onClick={() => setConfirmClear(true)}>
-          Clear
-        </Button>
+        {canClear && (
+          <Button type="button" variant="ghost" size="sm" onClick={() => setConfirmClear(true)}>
+            Clear
+          </Button>
+        )}
       </div>
       <div
         ref={listRef}
@@ -297,6 +305,9 @@ export function ProductChatTab({
         ))}
       </div>
 
+      {!canRun ? (
+        <p className="mt-3 text-xs text-[var(--text-tertiary)]">Your role can read this chat but not run the agents.</p>
+      ) : (
       <form onSubmit={onSubmit} className="mt-3 flex gap-2">
         <label htmlFor="chat-input" className="sr-only">
           Message
@@ -320,6 +331,7 @@ export function ProductChatTab({
           {busy ? 'Sending…' : 'Send'}
         </Button>
       </form>
+      )}
       {error && <p className="mt-2 text-sm text-[var(--error)]">{error}</p>}
 
       <Dialog open={confirmClear} onOpenChange={setConfirmClear}>
@@ -338,6 +350,15 @@ export function ProductChatTab({
       </Dialog>
     </div>
   );
+}
+
+/** Server-side denials arrive as SSE error events carrying the same codes as HTTP 403s. */
+function friendlyDenial(e: Partial<DenialBody> & { message: string }): string {
+  if (e.code === 'feature_disabled') {
+    return `${e.feature ? FEATURE_LABELS[e.feature] : 'This feature'} is not enabled for this organization.`;
+  }
+  if (e.code === 'permission_denied') return "Your role doesn't allow that.";
+  return e.message;
 }
 
 function MessageBubble({ message }: { message: DisplayMessage }) {

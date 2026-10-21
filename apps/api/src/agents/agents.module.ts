@@ -3,6 +3,7 @@ import { ConfigModule } from '@nestjs/config';
 
 import { IntegrationsModule } from '../integrations/integrations.module';
 import { DbModule } from '../db/db.module';
+import { AuthModule } from '../modules/auth/auth.module';
 import { OrchestratorAgent } from './orchestrator/orchestrator.agent';
 import { ProductContextAgent } from './product-context/product-context.agent';
 import { ProspectDiscoveryAgent } from './prospect-discovery/prospect-discovery.agent';
@@ -26,7 +27,7 @@ const AGENTS = [
 ];
 
 @Module({
-  imports: [ConfigModule, IntegrationsModule, DbModule],
+  imports: [ConfigModule, IntegrationsModule, DbModule, AuthModule],
   providers: AGENTS,
   exports: AGENTS,
 })

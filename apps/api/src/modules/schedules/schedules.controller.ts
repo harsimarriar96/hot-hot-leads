@@ -9,32 +9,33 @@ import {
   Patch,
   Post,
 } from '@nestjs/common';
-import { EntityManager } from '@mikro-orm/postgresql';
-import { Schedule } from '@hothotleads/db';
+import { Schedule, SchedulesRepository } from '@hothotleads/db';
 import { CronTime } from 'cron';
 
 import { SchedulerService } from '../../scheduler/scheduler.service';
+import { Auth } from '../auth/auth.decorator';
+import { RequireFeature, RequirePermission } from '../auth/access.decorators';
+import { requireOrg, type TenantContext } from '../auth/tenant-context';
 
 interface UpdateScheduleDto {
   enabled?: boolean;
 }
 
 @Controller('schedules')
+@RequireFeature('schedules')
 export class SchedulesController {
   private readonly logger = new Logger(SchedulesController.name);
 
   constructor(
-    private readonly em: EntityManager,
+    private readonly schedulesRepo: SchedulesRepository,
     private readonly scheduler: SchedulerService,
   ) {}
 
   @Get()
-  async list() {
-    const schedules = await this.em.find(
-      Schedule,
-      {},
-      { populate: ['product'], orderBy: { createdAt: 'DESC' } },
-    );
+  @RequirePermission('schedules:read')
+  async list(@Auth() auth: TenantContext) {
+    const { org } = requireOrg(auth);
+    const schedules = await this.schedulesRepo.listForOrg(org.id);
     return schedules.map((s) => ({
       id: s.id,
       name: s.name,
@@ -66,14 +67,15 @@ export class SchedulesController {
   }
 
   @Patch(':id')
-  async update(@Param('id') id: string, @Body() dto: UpdateScheduleDto) {
-    const em = this.em.fork();
-    const schedule = await em.findOne(Schedule, { id });
+  @RequirePermission('schedules:write')
+  async update(@Auth() auth: TenantContext, @Param('id') id: string, @Body() dto: UpdateScheduleDto) {
+    const { org } = requireOrg(auth);
+    const schedule = await this.schedulesRepo.findForOrg(org.id, id);
     if (!schedule) throw new NotFoundException('Schedule not found');
 
     if (dto.enabled !== undefined && dto.enabled !== schedule.enabled) {
       schedule.enabled = dto.enabled;
-      await em.flush();
+      await this.schedulesRepo.setEnabled(schedule.id, dto.enabled);
       if (dto.enabled) {
         this.scheduler.register(schedule);
       } else {
@@ -84,9 +86,11 @@ export class SchedulesController {
   }
 
   @Post(':id/run')
+  @RequirePermission('schedules:write')
   @HttpCode(202)
-  async runNow(@Param('id') id: string) {
-    const schedule = await this.em.findOne(Schedule, { id }, { populate: ['product'] });
+  async runNow(@Auth() auth: TenantContext, @Param('id') id: string) {
+    const { org } = requireOrg(auth);
+    const schedule = await this.schedulesRepo.findForOrg(org.id, id);
     if (!schedule) throw new NotFoundException('Schedule not found');
     // Fire-and-forget so the HTTP request returns immediately; the actual run
     // continues server-side.

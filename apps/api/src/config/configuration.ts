@@ -29,7 +29,16 @@ export default () => ({
   },
   security: {
     appSecretKey: process.env.APP_SECRET_KEY,
-    authPassword: process.env.APP_AUTH_PASSWORD,
+  },
+  platformAdmin: {
+    email: process.env.PLATFORM_ADMIN_EMAIL,
+    password: process.env.PLATFORM_ADMIN_PASSWORD,
+  },
+  app: {
+    // Absolute origin of the web app, used to build invite / password-reset links.
+    publicUrl:
+      process.env.APP_PUBLIC_URL ??
+      (process.env.DOMAIN ? `https://${process.env.DOMAIN}` : undefined),
   },
   features: {
     schedules: bool(process.env.SCHEDULES_ENABLED, false),

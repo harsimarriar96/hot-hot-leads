@@ -8,13 +8,14 @@ interface ChipInputProps {
   onChange: (next: string[]) => void;
   placeholder?: string;
   className?: string;
+  disabled?: boolean;
 }
 
 /**
  * Tag/chip multi-input. Type a value, press Enter or comma to add it.
  * Backspace on empty input removes the last chip. Click ✕ to remove a chip.
  */
-export function ChipInput({ id, values, onChange, placeholder, className }: ChipInputProps) {
+export function ChipInput({ id, values, onChange, placeholder, className, disabled = false }: ChipInputProps) {
   const [draft, setDraft] = useState('');
 
   function commit() {
@@ -46,6 +47,7 @@ export function ChipInput({ id, values, onChange, placeholder, className }: Chip
       className={cn(
         'flex flex-wrap items-center gap-1 rounded-md border border-[var(--border)] bg-[var(--surface)] px-2 py-1.5 min-h-9',
         'focus-within:border-[var(--accent)] focus-within:ring-2 focus-within:ring-[var(--ring)]',
+        disabled && 'opacity-60',
         className,
       )}
     >
@@ -55,14 +57,16 @@ export function ChipInput({ id, values, onChange, placeholder, className }: Chip
           className="inline-flex items-center gap-1 rounded bg-[var(--surface-2)] pl-2 pr-1 py-0.5 text-xs"
         >
           {v}
-          <button
-            type="button"
-            aria-label={`Remove ${v}`}
-            onClick={() => remove(v)}
-            className="text-[var(--text-tertiary)] hover:text-[var(--text)]"
-          >
-            <X className="h-3 w-3" />
-          </button>
+          {!disabled && (
+            <button
+              type="button"
+              aria-label={`Remove ${v}`}
+              onClick={() => remove(v)}
+              className="text-[var(--text-tertiary)] hover:text-[var(--text)]"
+            >
+              <X className="h-3 w-3" />
+            </button>
+          )}
         </span>
       ))}
       <input
@@ -71,6 +75,7 @@ export function ChipInput({ id, values, onChange, placeholder, className }: Chip
         onChange={(e) => setDraft(e.target.value)}
         onKeyDown={handleKeyDown}
         onBlur={commit}
+        disabled={disabled}
         placeholder={values.length === 0 ? placeholder : undefined}
         className="flex-1 min-w-[80px] bg-transparent text-sm placeholder:text-[var(--text-tertiary)] focus:outline-none"
       />

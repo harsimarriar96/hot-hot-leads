@@ -6,21 +6,32 @@ import { useChat, useNow } from '@/hooks/use-chat';
 import { useCurrentProduct } from '@/hooks/use-product';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { useAuth } from '@/hooks/use-auth';
+import { FEATURE_LABELS, FeatureUnavailable } from '@/components/gate';
+import type { FeatureKey } from '@hothotleads/types';
 
 interface QuickAction {
   id: string;
   label: string;
   build: (product: string) => string;
+  /** The organization feature this action depends on, if any. */
+  feature?: FeatureKey;
 }
 
 const QUICK_ACTIONS: QuickAction[] = [
-  { id: 'leads', label: 'Generate 5 leads', build: (p) => `generate 5 leads for ${p}` },
-  { id: 'signals', label: 'Check signals', build: (p) => `check signals for ${p} from last 14 days` },
+  { id: 'leads', label: 'Generate 5 leads', build: (p) => `generate 5 leads for ${p}`, feature: 'discovery' },
+  { id: 'signals', label: 'Check signals', build: (p) => `check signals for ${p} from last 14 days`, feature: 'signals' },
   { id: 'feedback', label: 'Review feedback', build: (p) => `review feedback for ${p}` },
   { id: 'products', label: 'List products', build: () => 'what products do we have?' },
 ];
 
 export function ChatPage() {
+  const { hasFeature, can } = useAuth();
+  if (!hasFeature('chat')) return <FeatureUnavailable feature="chat" />;
+  return <ChatPageInner canRun={can('agents:run')} />;
+}
+
+function ChatPageInner({ canRun }: { canRun: boolean }) {
   const { messages, send, isRunning } = useChat();
   const { current } = useCurrentProduct();
   const [draft, setDraft] = useState('');
@@ -38,13 +49,13 @@ export function ChatPage() {
 
   function handleSubmit(e?: React.FormEvent) {
     e?.preventDefault();
-    if (!draft.trim() || isRunning) return;
+    if (!draft.trim() || isRunning || !canRun) return;
     send(draft.trim());
     setDraft('');
   }
 
   function quickFire(action: QuickAction) {
-    if (isRunning) return;
+    if (isRunning || !canRun) return;
     const product = current ?? 'Product - Energy';
     send(action.build(product));
   }
@@ -59,7 +70,7 @@ export function ChatPage() {
             <EmptyState
               currentProduct={current}
               onQuick={quickFire}
-              disabled={isRunning}
+              disabled={isRunning || !canRun}
             />
           ) : (
             <div className="space-y-5">
@@ -71,6 +82,11 @@ export function ChatPage() {
         </div>
       </div>
 
+      {!canRun ? (
+        <p className="shrink-0 border-t border-[var(--border)] px-4 md:px-6 py-3 text-xs text-[var(--text-tertiary)]">
+          Your role can read this chat but not run the agents.
+        </p>
+      ) : (
       <form
         onSubmit={handleSubmit}
         className={cn(
@@ -124,8 +140,18 @@ export function ChatPage() {
           </div>
         </div>
       </form>
+      )}
     </div>
   );
+}
+
+/** Pills for actions whose feature is off stay visible but disabled, with the reason. */
+function useActionGate() {
+  const { hasFeature, activeOrg } = useAuth();
+  return (a: QuickAction): string | null =>
+    a.feature && !hasFeature(a.feature)
+      ? `${FEATURE_LABELS[a.feature]} is not enabled for ${activeOrg?.name ?? 'this organization'}`
+      : null;
 }
 
 function QuickActionPills({
@@ -139,6 +165,7 @@ function QuickActionPills({
   disabled: boolean;
   dense?: boolean;
 }) {
+  const gate = useActionGate();
   return (
     <div className={cn('flex flex-wrap gap-1.5', dense ? 'mb-2' : 'mb-4')}>
       <span className="inline-flex items-center text-[10px] font-mono uppercase tracking-[0.1em] text-[var(--text-tertiary)] pr-1">
@@ -149,7 +176,8 @@ function QuickActionPills({
           key={a.id}
           type="button"
           onClick={() => onFire(a)}
-          disabled={disabled || (a.id !== 'products' && !currentProduct)}
+          title={gate(a) ?? undefined}
+          disabled={disabled || Boolean(gate(a)) || (a.id !== 'products' && !currentProduct)}
           className={cn(
             'inline-flex h-9 sm:h-7 items-center rounded-full border border-[var(--border)] bg-[var(--surface)]',
             'px-3 sm:px-2.5 text-[12px] text-[var(--text-secondary)]',
@@ -174,6 +202,7 @@ function EmptyState({
   onQuick: (a: QuickAction) => void;
   disabled: boolean;
 }) {
+  const gate = useActionGate();
   return (
     <div className="reveal flex flex-col gap-6 pt-6 md:pt-10">
       <div className="space-y-1.5">
@@ -200,7 +229,8 @@ function EmptyState({
               key={a.id}
               type="button"
               onClick={() => onQuick(a)}
-              disabled={disabled || (a.id !== 'products' && !currentProduct)}
+              title={gate(a) ?? undefined}
+              disabled={disabled || Boolean(gate(a)) || (a.id !== 'products' && !currentProduct)}
               className={cn(
                 'inline-flex h-10 sm:h-8 items-center gap-2 rounded-md border border-[var(--border)]',
                 'bg-[var(--surface)] px-3 text-[13px] text-[var(--text)]',

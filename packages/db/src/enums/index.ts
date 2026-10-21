@@ -8,3 +8,5 @@ export { ScheduleChannel, ScheduleFrequency } from './schedule-channel.enum';
 export { OnboardingStatus, PreferredChannel } from './onboarding-status.enum';
 export { ChatRole, ChatSourceChannel } from './chat-role.enum';
 export { AgentModelTier } from './agent-model-tier.enum';
+export { MembershipRole } from './membership-role.enum';
+export { AuthTokenKind } from './auth-token-kind.enum';

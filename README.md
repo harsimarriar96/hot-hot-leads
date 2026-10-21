@@ -8,7 +8,9 @@ AI-led GTM (Go-To-Market) engineering engine powered by Claude. It discovers, en
 scores leads, drafts outreach, and monitors buying signals through a NestJS + Claude
 multi-agent pipeline, controlled from a web UI and (optionally) Telegram or WhatsApp.
 
-Everything is stored in Postgres. One deployment serves one workspace (single tenant).
+Everything is stored in Postgres. One deployment hosts many organizations: users sign in with
+their own account, belong to organizations with a role, and a platform admin decides which
+features and limits each organization gets.
 
 ## Workspace layout
 
@@ -38,15 +40,17 @@ cp apps/api/.env.example apps/api/.env        # then fill in the required values
 npx turbo run dev                             # API on http://localhost:3000, web on http://localhost:5173
 ```
 
-Open http://localhost:5173, sign in with `APP_AUTH_PASSWORD`, and complete the four-step
-onboarding wizard (workspace → operator → channels → first product). Migrations run
-automatically when the API boots.
+Open http://localhost:5173 and sign in with `PLATFORM_ADMIN_EMAIL` / `PLATFORM_ADMIN_PASSWORD`.
+Create an organization in the Platform console, invite its owner (you get a link to share; no
+email is sent), open the link in a private window, set a password and complete the three-step
+onboarding wizard (organization → channels → first product). Migrations run automatically when
+the API boots.
 
 Other commands:
 
 ```bash
 npx turbo run typecheck lint build test       # what CI runs
-npm --workspace @hothotleads/api run test:single -- src/modules/auth/auth.service.spec.ts
+npm --workspace @hothotleads/api run test:single -- src/modules/auth/auth.guard.spec.ts
 npm --workspace @hothotleads/db run db:migrate:create   # after changing an entity
 ```
 
@@ -57,9 +61,10 @@ All settings are environment variables, read by the API. See
 
 | Variable | Required | Purpose |
 |---|---|---|
-| `ANTHROPIC_API_KEY` | yes | Used by the Claude Agent SDK subprocess for every agent run. |
-| `APP_AUTH_PASSWORD` | yes | Shared password for the web UI sign-in. |
-| `APP_SECRET_KEY` | yes | 32+ chars. Encrypts stored channel credentials and keys the sign-in token. |
+| `ANTHROPIC_API_KEY` | yes, unless Bedrock | Used by the Claude Agent SDK subprocess for every agent run. Alternatively set `CLAUDE_CODE_USE_BEDROCK=1` and use AWS credentials (see the deploy guide). |
+| `PLATFORM_ADMIN_EMAIL`, `PLATFORM_ADMIN_PASSWORD` | first boot | Creates (or promotes) the platform admin. The password is applied only to an account that has none. |
+| `APP_PUBLIC_URL` | recommended | Origin used in invite and password-reset links (defaults to `https://$DOMAIN`, then `http://localhost:5173`). |
+| `APP_SECRET_KEY` | yes | 32+ chars. Encrypts stored channel credentials at rest. |
 | `DATABASE_URL` | yes | Postgres connection string. |
 | `EXA_API_KEY` | for research | Prospect discovery, enrichment and signal monitoring call Exa. |
 | `TELEGRAM_BOT_TOKEN`, `TELEGRAM_WEBHOOK_SECRET` | optional | Telegram channel. Webhooks are rejected while the secret is empty. |
@@ -97,16 +102,19 @@ docker compose -f docker-compose.prod.yml up -d --build
 | Area | State |
 |---|---|
 | Products, ICP, leads, outreach, signals, feedback, dashboard | Working |
-| Web sign-in (shared password) | Working |
+| Accounts, organizations, roles (owner/admin/member/viewer) | Working |
+| Per-organization entitlements (features, limits, channels) via the Platform console | Working |
+| Invitations and password resets | Working as copy-link (no outbound email) |
 | Telegram / WhatsApp channels | Working; secrets required |
 | **Schedules (recurring tasks)** | **Coming soon.** The scheduler is single-instance in-process cron and is disabled by default (`SCHEDULES_ENABLED=false`). The UI shows a placeholder. |
-| Multi-tenant / multiple workspaces | Not planned; deploy one stack per customer |
+| Per-organization Telegram/WhatsApp bots | Not yet; channels are deployment-wide and route to the only organization |
 | Channel credentials entered in Settings | Stored encrypted but channels currently read tokens from environment variables |
 
 ## Security notes
 
-- Set `APP_AUTH_PASSWORD`, `APP_SECRET_KEY` and the channel secrets before exposing a deploy.
-- Rotating `APP_AUTH_PASSWORD` or `APP_SECRET_KEY` signs out every browser session.
+- Set `PLATFORM_ADMIN_*`, `APP_SECRET_KEY` and the channel secrets before exposing a deploy.
+- Passwords are scrypt-hashed; sessions are opaque tokens stored as hashes with a 30-day sliding expiry. Changing a password signs out that user's other sessions.
+- Invite and reset links are single-use and expire (7 days / 72 hours); only the admin who generated one sees it.
 - See [SECURITY.md](SECURITY.md) for reporting vulnerabilities.
 
 ## Further reading

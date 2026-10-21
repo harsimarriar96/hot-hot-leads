@@ -3,8 +3,20 @@ import { createSdkMcpServer, query, tool } from '@anthropic-ai/claude-agent-sdk'
 
 import { DEFAULT_MODELS } from '../../config/models';
 import type { ZodRawShape } from 'zod';
+import type { FeatureKey, Permission } from '@hothotleads/types';
+
+import { requireOrg, type OrgContext, type TenantContext } from '../../modules/auth/tenant-context';
+import { partitionTools, tenantPreamble } from './tool-access';
+
+/**
+ * Hard stop for runaway agent loops. One "turn" is one model round-trip; a full
+ * lead-generation run uses 10–25. Override per call with AgentRunOptions.maxTurns.
+ */
+const DEFAULT_MAX_TURNS = 40;
 
 export interface AgentRunOptions {
+  /** Who is acting and for which organization. Required: every tool call is scoped by it. */
+  ctx: TenantContext;
   model?: string;
   extraContext?: string;
   maxTurns?: number;
@@ -14,7 +26,9 @@ export interface AgentToolDef {
   name: string;
   description: string;
   schema: ZodRawShape;
-  handler: (input: Record<string, unknown>) => Promise<unknown>;
+  /** When set, the tool is hidden from the model unless the org has the feature and the caller the permission. */
+  requires?: { feature?: FeatureKey; permission?: Permission };
+  handler: (input: Record<string, unknown>, ctx: OrgContext) => Promise<unknown>;
 }
 
 export type AssistantContentBlock =
@@ -68,7 +82,7 @@ export abstract class BaseAgent {
     this.logger = new Logger(this.constructor.name);
   }
 
-  async run(task: string, options: AgentRunOptions = {}): Promise<string> {
+  async run(task: string, options: AgentRunOptions): Promise<string> {
     let finalText = '';
     for await (const event of this.runStream(task, options)) {
       if (event.type === 'message_done') finalText = event.text;
@@ -76,8 +90,10 @@ export abstract class BaseAgent {
     return finalText || 'Task failed.';
   }
 
-  async *runStream(task: string, options: AgentRunOptions = {}): AsyncGenerator<AgentEvent> {
-    const defs = this.buildTools();
+  async *runStream(task: string, options: AgentRunOptions): AsyncGenerator<AgentEvent> {
+    // The context lives only in this run's closures: agents are singletons shared by every tenant.
+    const ctx = requireOrg(options.ctx);
+    const { allowed: defs, hidden } = partitionTools(this.buildTools(), ctx);
     const serverName = this.agentName.replace(/[^a-z0-9_]/gi, '_');
 
     const toolInputsById = new Map<string, { name: string; input: Record<string, unknown> }>();
@@ -86,7 +102,7 @@ export abstract class BaseAgent {
       tool(d.name, d.description, d.schema, async (args) => {
         this.logger.debug(`[${this.agentName}] tool: ${d.name}`);
         try {
-          const result = await d.handler(args as Record<string, unknown>);
+          const result = await d.handler(args as Record<string, unknown>, ctx);
           return {
             content: [{ type: 'text', text: JSON.stringify(result ?? null) }],
           };
@@ -104,9 +120,9 @@ export abstract class BaseAgent {
     const mcpServer = createSdkMcpServer({ name: serverName, version: '1.0.0', tools });
     const toolNames = defs.map((d) => `mcp__${serverName}__${d.name}`);
 
-    const systemPrompt = options.extraContext
-      ? `${options.extraContext}\n\n---\n\n${this.systemPrompt}`
-      : this.systemPrompt;
+    const systemPrompt = [tenantPreamble(ctx, hidden), options.extraContext, this.systemPrompt]
+      .filter(Boolean)
+      .join('\n\n---\n\n');
 
     const model = options.model ?? this.defaultModel();
     this.logger.debug(`[${this.agentName}] starting`, { model, task: task.slice(0, 80) });
@@ -124,6 +140,7 @@ export abstract class BaseAgent {
         allowedTools: toolNames,
         tools: [],
         permissionMode: 'bypassPermissions',
+        maxTurns: options.maxTurns ?? DEFAULT_MAX_TURNS,
       },
     });
 
@@ -172,8 +189,12 @@ export abstract class BaseAgent {
       } else if (msg.type === 'result') {
         if (msg.subtype === 'success') {
           const resultText = msg.result ?? finalText;
-          this.logger.debug(
-            `[${this.agentName}] done (${msg.num_turns} turns, $${msg.total_cost_usd.toFixed(4)})`,
+          const u = msg.usage;
+          // Always logged: this is the per-run cost trail operators grep for.
+          this.logger.log(
+            `[${this.agentName}] run done: ${msg.num_turns} turns, ${Math.round(msg.duration_ms / 1000)}s, ` +
+              `tokens in=${u.input_tokens} out=${u.output_tokens} cache_read=${u.cache_read_input_tokens ?? 0} ` +
+              `cache_write=${u.cache_creation_input_tokens ?? 0}, est $${msg.total_cost_usd.toFixed(4)}`,
           );
           if (resultText && !finalText) finalText = resultText;
           yield {
@@ -184,14 +205,16 @@ export abstract class BaseAgent {
           };
           return;
         }
-        this.logger.error(`[${this.agentName}] result error`, {
-          subtype: msg.subtype,
-          is_error: msg.is_error,
-        });
+        this.logger.error(
+          `[${this.agentName}] run ended with ${msg.subtype} after ${msg.num_turns} turns, est $${(msg.total_cost_usd ?? 0).toFixed(4)}`,
+        );
         yield {
           type: 'error',
           code: String(msg.subtype ?? 'unknown'),
-          message: `Agent run ended with error (${msg.subtype ?? 'unknown'})`,
+          message:
+            msg.subtype === 'error_max_turns'
+              ? `Agent run stopped after ${msg.num_turns} steps (safety limit). Try a narrower request.`
+              : `Agent run ended with error (${msg.subtype ?? 'unknown'})`,
         };
         yield {
           type: 'message_done',

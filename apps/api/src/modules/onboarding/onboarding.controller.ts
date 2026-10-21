@@ -10,12 +10,10 @@ import {
 } from '@nestjs/common';
 import { OnboardingStatus } from '@hothotleads/db';
 
-import {
-  ChannelsStepDto,
-  FirstProductDto,
-  OperatorProfileDto,
-  WorkspaceDetailsDto,
-} from './onboarding.dto';
+import { Auth } from '../auth/auth.decorator';
+import { RequirePermission } from '../auth/access.decorators';
+import type { TenantContext } from '../auth/tenant-context';
+import { ChannelsStepDto, FirstProductDto, WorkspaceDetailsDto } from './onboarding.dto';
 import { OnboardingService } from './onboarding.service';
 
 @Controller('onboarding')
@@ -24,51 +22,47 @@ export class OnboardingController {
   constructor(private readonly onboarding: OnboardingService) {}
 
   @Get()
-  async getStatus() {
-    return this.onboarding.getStatus();
+  async getStatus(@Auth() ctx: TenantContext) {
+    return this.onboarding.getStatus(ctx);
   }
 
+  /** First submit creates the organization, so it needs no org permission; later ones need org:update. */
   @Post('workspace-details')
   @HttpCode(200)
-  async workspaceDetails(@Body() dto: WorkspaceDetailsDto) {
-    await this.rejectIfCompleted();
-    const ws = await this.onboarding.submitWorkspaceDetails(dto);
-    return { status: ws.onboardingStatus };
-  }
-
-  @Post('operator-profile')
-  @HttpCode(200)
-  async operatorProfile(@Body() dto: OperatorProfileDto) {
-    await this.rejectIfCompleted();
-    await this.onboarding.submitOperatorProfile(dto);
-    return (await this.onboarding.getStatus());
+  async workspaceDetails(@Auth() ctx: TenantContext, @Body() dto: WorkspaceDetailsDto) {
+    await this.rejectIfCompleted(ctx);
+    const org = await this.onboarding.submitWorkspaceDetails(ctx, dto);
+    return { status: org.onboardingStatus, organizationId: org.id };
   }
 
   @Post('channels')
+  @RequirePermission('channels:manage')
   @HttpCode(200)
-  async channels(@Body() dto: ChannelsStepDto) {
-    await this.rejectIfCompleted();
-    await this.onboarding.submitChannels(dto);
-    return (await this.onboarding.getStatus());
+  async channels(@Auth() ctx: TenantContext, @Body() dto: ChannelsStepDto) {
+    await this.rejectIfCompleted(ctx);
+    await this.onboarding.submitChannels(ctx, dto);
+    return this.onboarding.getStatus(ctx);
   }
 
   @Post('first-product')
+  @RequirePermission('products:write')
   @HttpCode(200)
-  async firstProduct(@Body() dto: FirstProductDto) {
-    await this.rejectIfCompleted();
-    const product = await this.onboarding.submitFirstProduct(dto);
+  async firstProduct(@Auth() ctx: TenantContext, @Body() dto: FirstProductDto) {
+    await this.rejectIfCompleted(ctx);
+    const product = await this.onboarding.submitFirstProduct(ctx, dto);
     return { status: OnboardingStatus.COMPLETED, product: { id: product.id, name: product.name } };
   }
 
-  /** Wipes workspace + operator + channel rows. Protected by the global bearer guard. */
+  /** Restarts the wizard for the active organization (keeps products and members). */
   @Post('reset')
+  @RequirePermission('org:update')
   @HttpCode(204)
-  async reset() {
-    await this.onboarding.reset();
+  async reset(@Auth() ctx: TenantContext) {
+    await this.onboarding.reset(ctx);
   }
 
-  private async rejectIfCompleted(): Promise<void> {
-    const { status } = await this.onboarding.getStatus();
+  private async rejectIfCompleted(ctx: TenantContext): Promise<void> {
+    const { status } = await this.onboarding.getStatus(ctx);
     if (status === OnboardingStatus.COMPLETED) {
       throw new ConflictException('Onboarding already completed; edit via /settings instead');
     }

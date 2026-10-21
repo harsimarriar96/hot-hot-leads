@@ -1,7 +1,7 @@
 import { EntityManager } from '@mikro-orm/postgresql';
 
 import { ChannelCredential } from '../entities/channel-credential.entity';
-import { Workspace } from '../entities/workspace.entity';
+import { Organization } from '../entities/organization.entity';
 import { PreferredChannel } from '../enums';
 
 export interface StoredCredentialBlob {
@@ -20,13 +20,13 @@ export class ChannelCredentialsRepository {
   constructor(private readonly em: EntityManager) {}
 
   async save(
-    workspace: Workspace,
+    orgId: string,
     channel: PreferredChannel,
     blob: StoredCredentialBlob,
   ): Promise<ChannelCredential> {
     const em = this.em.fork();
-    const ws = await em.findOneOrFail(Workspace, { id: workspace.id });
-    const existing = await em.findOne(ChannelCredential, { workspace: ws, channel });
+    const organization = em.getReference(Organization, orgId);
+    const existing = await em.findOne(ChannelCredential, { organization, channel });
     if (existing) {
       existing.credentialsCiphertext = blob.ciphertext;
       existing.credentialsIv = blob.iv;
@@ -37,7 +37,7 @@ export class ChannelCredentialsRepository {
     const row = em.create(
       ChannelCredential,
       {
-        workspace: ws,
+        organization,
         channel,
         credentialsCiphertext: blob.ciphertext,
         credentialsIv: blob.iv,
@@ -49,8 +49,8 @@ export class ChannelCredentialsRepository {
     return row;
   }
 
-  async load(workspace: Workspace, channel: PreferredChannel): Promise<StoredCredentialBlob | null> {
-    const row = await this.em.findOne(ChannelCredential, { workspace, channel });
+  async load(orgId: string, channel: PreferredChannel): Promise<StoredCredentialBlob | null> {
+    const row = await this.em.fork().findOne(ChannelCredential, { organization: orgId, channel });
     if (!row) return null;
     return {
       ciphertext: row.credentialsCiphertext,
@@ -59,8 +59,8 @@ export class ChannelCredentialsRepository {
     };
   }
 
-  async list(workspace: Workspace): Promise<RedactedCredential[]> {
-    const rows = await this.em.find(ChannelCredential, { workspace });
+  async list(orgId: string): Promise<RedactedCredential[]> {
+    const rows = await this.em.fork().find(ChannelCredential, { organization: orgId });
     return rows.map((r) => ({
       channel: r.channel,
       configured: true,
@@ -68,9 +68,9 @@ export class ChannelCredentialsRepository {
     }));
   }
 
-  async remove(workspace: Workspace, channel: PreferredChannel): Promise<void> {
+  async remove(orgId: string, channel: PreferredChannel): Promise<void> {
     const em = this.em.fork();
-    const row = await em.findOne(ChannelCredential, { workspace, channel });
+    const row = await em.findOne(ChannelCredential, { organization: orgId, channel });
     if (!row) return;
     em.remove(row);
     await em.flush();

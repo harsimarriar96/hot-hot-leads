@@ -8,7 +8,7 @@ export class ProductIcp {
   @PrimaryKey({ type: 'uuid', defaultRaw: 'gen_random_uuid()' })
   id: string = randomUUID();
 
-  @OneToOne(() => Product, (p) => p.icp, { owner: true, fieldName: 'product_id', unique: true })
+  @OneToOne(() => Product, (p) => p.icp, { owner: true, fieldName: 'product_id', unique: true, deleteRule: 'cascade' })
   product!: Product;
 
   @Property({ type: 'text[]', default: '{}' })

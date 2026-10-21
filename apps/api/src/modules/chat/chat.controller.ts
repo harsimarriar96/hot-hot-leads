@@ -11,6 +11,9 @@ import {
 import type { Response } from 'express';
 import { ProductsRepository } from '@hothotleads/db';
 
+import { Auth } from '../auth/auth.decorator';
+import { RequireFeature, RequirePermission } from '../auth/access.decorators';
+import { requireOrg, type TenantContext } from '../auth/tenant-context';
 import { ChatService } from './chat.service';
 import { ChatTranscriptService } from './chat-transcript.service';
 
@@ -19,6 +22,7 @@ interface PostMessageBody {
 }
 
 @Controller('products/:productId/chat')
+@RequireFeature('chat')
 export class ProductChatController {
   constructor(
     private readonly chatService: ChatService,
@@ -27,11 +31,13 @@ export class ProductChatController {
   ) {}
 
   @Get()
-  async get(@Param('productId') productId: string) {
-    const product = await this.productsRepo.findById(productId);
+  @RequirePermission('chat:read')
+  async get(@Auth() auth: TenantContext, @Param('productId') productId: string) {
+    const ctx = requireOrg(auth);
+    const product = await this.productsRepo.findById(ctx.org.id, productId);
     if (!product) return { error: 'Product not found' };
-    const chat = await this.transcript.getOrCreateChatForProduct(productId);
-    const messages = await this.transcript.listMessages(chat.id);
+    const chat = await this.transcript.getOrCreateChatForProduct(ctx.org.id, productId);
+    const messages = await this.transcript.listMessages(ctx.org.id, chat.id);
     return {
       chat: { id: chat.id, createdAt: chat.createdAt, updatedAt: chat.updatedAt },
       messages: messages.map((m) => ({
@@ -46,11 +52,14 @@ export class ProductChatController {
   }
 
   @Post('messages')
+  @RequirePermission('agents:run')
   async postMessage(
+    @Auth() auth: TenantContext,
     @Param('productId') productId: string,
     @Body() body: PostMessageBody,
     @Res() res: Response,
   ): Promise<void> {
+    const ctx = requireOrg(auth);
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache, no-transform');
     res.setHeader('Connection', 'keep-alive');
@@ -72,7 +81,7 @@ export class ProductChatController {
     });
 
     try {
-      for await (const event of this.chatService.handleWebMessage(productId, body.text)) {
+      for await (const event of this.chatService.handleWebMessage(ctx, productId, body.text)) {
         if (!clientDisconnected) {
           send(event.type, event);
         }
@@ -93,9 +102,11 @@ export class ProductChatController {
   }
 
   @Delete()
+  @RequirePermission('chat:write')
   @HttpCode(204)
-  async clearChat(@Param('productId') productId: string): Promise<void> {
-    const chat = await this.transcript.getOrCreateChatForProduct(productId);
-    await this.transcript.clearMessages(chat.id);
+  async clearChat(@Auth() auth: TenantContext, @Param('productId') productId: string): Promise<void> {
+    const ctx = requireOrg(auth);
+    const chat = await this.transcript.getOrCreateChatForProduct(ctx.org.id, productId);
+    await this.transcript.clearMessages(ctx.org.id, chat.id);
   }
 }

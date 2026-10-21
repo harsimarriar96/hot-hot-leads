@@ -5,6 +5,7 @@ import {
   FeedbackEntry,
   Lead,
   LeadStatus,
+  Organization,
   OutreachDraft,
   OutreachTone,
   PredefinedProspect,
@@ -19,7 +20,11 @@ import {
   SignalSource,
   SignalType,
   SourceType,
+  User,
 } from '@hothotleads/db';
+
+import { EntitlementsService } from '../auth/entitlements.service';
+import type { OrgContext } from '../auth/tenant-context';
 
 const DEMO_PRODUCT_NAME = 'Acme AI';
 const DEMO_PRODUCT_SLUG = 'acme-ai';
@@ -28,14 +33,21 @@ const DEMO_PRODUCT_SLUG = 'acme-ai';
 export class DemoSeedService {
   private readonly logger = new Logger(DemoSeedService.name);
 
-  constructor(private readonly em: EntityManager) {}
+  constructor(
+    private readonly em: EntityManager,
+    private readonly entitlements: EntitlementsService,
+  ) {}
 
-  /** Idempotent: tears down any prior demo product and rebuilds. */
-  async seed(): Promise<{ productId: string; counts: Record<string, number> }> {
+  /** Idempotent: tears down any prior demo product in this organization and rebuilds. */
+  async seed(ctx: OrgContext): Promise<{ productId: string; counts: Record<string, number> }> {
     const em = this.em.fork();
+    const organization = em.getReference(Organization, ctx.org.id);
+    const createdBy = (await em.findOne(User, { id: ctx.user.id })) ?? undefined;
 
     // Reset — cascade via FK wipes everything owned by the demo product.
-    const existing = await em.findOne(Product, { slug: DEMO_PRODUCT_SLUG });
+    const existing = await em.findOne(Product, { organization, slug: DEMO_PRODUCT_SLUG });
+    // Replacing the demo product does not consume a new seat.
+    await this.entitlements.assertCanCreateProduct(ctx, existing ? -1 : 0);
     if (existing) {
       em.remove(existing);
       await em.flush();
@@ -44,6 +56,7 @@ export class DemoSeedService {
     const product = em.create(
       Product,
       {
+        organization,
         name: DEMO_PRODUCT_NAME,
         slug: DEMO_PRODUCT_SLUG,
         generalInfo:
@@ -134,6 +147,8 @@ export class DemoSeedService {
 
     const schedules = [
       {
+        organization,
+        createdBy,
         product,
         name: 'Daily prospect discovery',
         taskPrompt: `Generate 5 new leads for ${product.name} matching current ICP`,
@@ -144,6 +159,8 @@ export class DemoSeedService {
         enabled: true,
       },
       {
+        organization,
+        createdBy,
         product,
         name: 'Weekly signal sweep',
         taskPrompt: `Check signals for ${product.name} from last 14 days`,

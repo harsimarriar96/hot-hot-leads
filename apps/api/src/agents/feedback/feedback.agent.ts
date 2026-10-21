@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { BaseAgent, AgentToolDef } from '../base/base.agent';
 import { FeedbackRepository } from '@hothotleads/db';
 import { ProductsRepository } from '@hothotleads/db';
+import type { TenantContext } from '../../modules/auth/tenant-context';
 
 export interface FeedbackEvalInput {
   productName: string;
@@ -51,7 +52,7 @@ The feedback you generate is used to improve the system over time. Be honest and
     super();
   }
 
-  async evaluate(input: FeedbackEvalInput): Promise<string> {
+  async evaluate(ctx: TenantContext, input: FeedbackEvalInput): Promise<string> {
     const task = `
 Evaluate the output quality for the "${input.agentType}" agent run on product "${input.productName}".
 
@@ -65,15 +66,17 @@ Load the ICP, check recent feedback for patterns, evaluate, and save your assess
     `.trim();
 
     return this.run(task, {
+      ctx,
       model: this.config.get<string>('anthropic.modelFast'),
     });
   }
 
-  async getWeeklySummary(productName: string): Promise<string> {
+  async getWeeklySummary(ctx: TenantContext, productName: string): Promise<string> {
     return this.run(
       `Review all feedback entries from the last 7 days for product "${productName}".
        Identify the top 3 quality issues and top 3 improvement suggestions.
        Also calculate average quality score per agent type.`,
+      { ctx },
     );
   }
 
@@ -83,8 +86,8 @@ Load the ICP, check recent feedback for patterns, evaluate, and save your assess
         name: 'get_product_knowledge',
         description: 'Load ICP and strategy to use as quality evaluation baseline.',
         schema: { productName: z.string() },
-        handler: async (input) =>
-          this.productsRepo.getProductKnowledge(input.productName as string),
+        handler: async (input, ctx) =>
+          this.productsRepo.getProductKnowledge(ctx.org.id, input.productName as string),
       },
       {
         name: 'get_recent_feedback',
@@ -94,8 +97,9 @@ Load the ICP, check recent feedback for patterns, evaluate, and save your assess
           agentType: z.string().optional(),
           limit: z.number().optional(),
         },
-        handler: async (input) =>
+        handler: async (input, ctx) =>
           this.feedbackRepo.getRecentFeedback(
+            ctx.org.id,
             input.productName as string,
             input.agentType as string | undefined,
             (input.limit as number) ?? 10,
@@ -104,6 +108,7 @@ Load the ICP, check recent feedback for patterns, evaluate, and save your assess
       {
         name: 'save_feedback',
         description: 'Persist the feedback evaluation to the Feedback Log.',
+        requires: { permission: 'feedback:write' },
         schema: {
           productName: z.string(),
           agentType: z.string(),
@@ -114,9 +119,10 @@ Load the ICP, check recent feedback for patterns, evaluate, and save your assess
           suggestions: z.array(z.string()).optional(),
           overallAssessment: z.string().optional(),
         },
-        handler: async (input) =>
+        handler: async (input, ctx) =>
           this.feedbackRepo.saveFeedback(
-            input as unknown as Parameters<FeedbackRepository['saveFeedback']>[0],
+            ctx.org.id,
+            input as unknown as Parameters<FeedbackRepository['saveFeedback']>[1],
           ),
       },
     ];

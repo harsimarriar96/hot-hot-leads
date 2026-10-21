@@ -22,8 +22,435 @@
           "enumItems": [],
           "mappedType": "uuid"
         },
-        "workspace_id": {
-          "name": "workspace_id",
+        "kind": {
+          "name": "kind",
+          "type": "auth_token_kind",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [
+            "invite",
+            "password_reset"
+          ],
+          "mappedType": "unknown",
+          "nativeEnumName": "auth_token_kind"
+        },
+        "token_hash": {
+          "name": "token_hash",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": true,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "text"
+        },
+        "email": {
+          "name": "email",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "text"
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "uuid",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "uuid"
+        },
+        "organization_id": {
+          "name": "organization_id",
+          "type": "uuid",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "uuid"
+        },
+        "role": {
+          "name": "role",
+          "type": "membership_role",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [
+            "owner",
+            "admin",
+            "member",
+            "viewer"
+          ],
+          "mappedType": "unknown",
+          "nativeEnumName": "membership_role"
+        },
+        "invited_by_user_id": {
+          "name": "invited_by_user_id",
+          "type": "uuid",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "uuid"
+        },
+        "expires_at": {
+          "name": "expires_at",
+          "type": "timestamptz(6)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": 6,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "datetime"
+        },
+        "used_at": {
+          "name": "used_at",
+          "type": "timestamptz(6)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": 6,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "datetime"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamptz(6)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": 6,
+          "precision": null,
+          "scale": null,
+          "default": "now()",
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "datetime"
+        }
+      },
+      "name": "auth_tokens",
+      "schema": "public",
+      "indexes": [
+        {
+          "columnNames": [
+            "kind",
+            "organization_id"
+          ],
+          "composite": true,
+          "constraint": false,
+          "keyName": "auth_tokens_kind_organization_id_index",
+          "unique": false,
+          "primary": false
+        },
+        {
+          "columnNames": [
+            "id"
+          ],
+          "composite": false,
+          "constraint": false,
+          "keyName": "auth_tokens_pkey",
+          "unique": true,
+          "primary": true
+        },
+        {
+          "columnNames": [
+            "token_hash"
+          ],
+          "composite": false,
+          "constraint": true,
+          "keyName": "auth_tokens_token_hash_unique",
+          "unique": true,
+          "primary": false
+        }
+      ],
+      "checks": [],
+      "foreignKeys": {
+        "auth_tokens_invited_by_user_id_foreign": {
+          "columnNames": [
+            "invited_by_user_id"
+          ],
+          "constraintName": "auth_tokens_invited_by_user_id_foreign",
+          "localTableName": "public.auth_tokens",
+          "referencedTableName": "public.users",
+          "referencedColumnNames": [
+            "id"
+          ],
+          "updateRule": "cascade",
+          "deleteRule": "set null"
+        },
+        "auth_tokens_organization_id_foreign": {
+          "columnNames": [
+            "organization_id"
+          ],
+          "constraintName": "auth_tokens_organization_id_foreign",
+          "localTableName": "public.auth_tokens",
+          "referencedTableName": "public.organizations",
+          "referencedColumnNames": [
+            "id"
+          ],
+          "updateRule": "cascade",
+          "deleteRule": "cascade"
+        },
+        "auth_tokens_user_id_foreign": {
+          "columnNames": [
+            "user_id"
+          ],
+          "constraintName": "auth_tokens_user_id_foreign",
+          "localTableName": "public.auth_tokens",
+          "referencedTableName": "public.users",
+          "referencedColumnNames": [
+            "id"
+          ],
+          "updateRule": "cascade",
+          "deleteRule": "cascade"
+        }
+      },
+      "nativeEnums": {
+        "agent_model_tier": {
+          "name": "agent_model_tier",
+          "schema": "public",
+          "items": [
+            "fast",
+            "default",
+            "heavy"
+          ]
+        },
+        "agent_type": {
+          "name": "agent_type",
+          "schema": "public",
+          "items": [
+            "orchestrator",
+            "product-context",
+            "prospect-discovery",
+            "enrichment",
+            "scoring",
+            "outreach",
+            "signal-monitor",
+            "buying-intent",
+            "feedback"
+          ]
+        },
+        "auth_token_kind": {
+          "name": "auth_token_kind",
+          "schema": "public",
+          "items": [
+            "invite",
+            "password_reset"
+          ]
+        },
+        "chat_role": {
+          "name": "chat_role",
+          "schema": "public",
+          "items": [
+            "user",
+            "assistant",
+            "tool"
+          ]
+        },
+        "chat_source_channel": {
+          "name": "chat_source_channel",
+          "schema": "public",
+          "items": [
+            "web",
+            "telegram",
+            "whatsapp"
+          ]
+        },
+        "lead_status": {
+          "name": "lead_status",
+          "schema": "public",
+          "items": [
+            "new",
+            "enriched",
+            "scored",
+            "outreach_ready",
+            "contacted",
+            "qualified",
+            "disqualified"
+          ]
+        },
+        "membership_role": {
+          "name": "membership_role",
+          "schema": "public",
+          "items": [
+            "owner",
+            "admin",
+            "member",
+            "viewer"
+          ]
+        },
+        "onboarding_status": {
+          "name": "onboarding_status",
+          "schema": "public",
+          "items": [
+            "pending",
+            "workspace_details",
+            "operator_profile",
+            "channels",
+            "first_product",
+            "completed"
+          ]
+        },
+        "outreach_tone": {
+          "name": "outreach_tone",
+          "schema": "public",
+          "items": [
+            "formal",
+            "casual",
+            "friendly"
+          ]
+        },
+        "preferred_channel": {
+          "name": "preferred_channel",
+          "schema": "public",
+          "items": [
+            "telegram",
+            "whatsapp"
+          ]
+        },
+        "schedule_channel": {
+          "name": "schedule_channel",
+          "schema": "public",
+          "items": [
+            "telegram",
+            "whatsapp"
+          ]
+        },
+        "schedule_frequency": {
+          "name": "schedule_frequency",
+          "schema": "public",
+          "items": [
+            "hourly",
+            "daily",
+            "weekly",
+            "custom"
+          ]
+        },
+        "signal_source": {
+          "name": "signal_source",
+          "schema": "public",
+          "items": [
+            "exa",
+            "tavily",
+            "perplexity",
+            "manual"
+          ]
+        },
+        "signal_type": {
+          "name": "signal_type",
+          "schema": "public",
+          "items": [
+            "content_social",
+            "hiring_org",
+            "company_activity",
+            "regulatory",
+            "buying_intent",
+            "funding",
+            "hiring",
+            "news",
+            "product_launch",
+            "leadership_change"
+          ]
+        },
+        "source_type": {
+          "name": "source_type",
+          "schema": "public",
+          "items": [
+            "news",
+            "newsletter",
+            "database",
+            "social",
+            "other"
+          ]
+        }
+      },
+      "comment": null
+    },
+    {
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": true,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": "gen_random_uuid()",
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "uuid"
+        },
+        "organization_id": {
+          "name": "organization_id",
           "type": "uuid",
           "unsigned": false,
           "autoincrement": false,
@@ -144,6 +571,17 @@
       "indexes": [
         {
           "columnNames": [
+            "organization_id",
+            "channel"
+          ],
+          "composite": true,
+          "constraint": true,
+          "keyName": "channel_credentials_organization_channel_unique",
+          "unique": true,
+          "primary": false
+        },
+        {
+          "columnNames": [
             "id"
           ],
           "composite": false,
@@ -151,28 +589,17 @@
           "keyName": "channel_credentials_pkey",
           "unique": true,
           "primary": true
-        },
-        {
-          "columnNames": [
-            "workspace_id",
-            "channel"
-          ],
-          "composite": true,
-          "constraint": true,
-          "keyName": "channel_credentials_workspace_channel_unique",
-          "unique": true,
-          "primary": false
         }
       ],
       "checks": [],
       "foreignKeys": {
-        "channel_credentials_workspace_id_foreign": {
+        "channel_credentials_organization_id_foreign": {
           "columnNames": [
-            "workspace_id"
+            "organization_id"
           ],
-          "constraintName": "channel_credentials_workspace_id_foreign",
+          "constraintName": "channel_credentials_organization_id_foreign",
           "localTableName": "public.channel_credentials",
-          "referencedTableName": "public.workspaces",
+          "referencedTableName": "public.organizations",
           "referencedColumnNames": [
             "id"
           ],
@@ -205,6 +632,14 @@
             "feedback"
           ]
         },
+        "auth_token_kind": {
+          "name": "auth_token_kind",
+          "schema": "public",
+          "items": [
+            "invite",
+            "password_reset"
+          ]
+        },
         "chat_role": {
           "name": "chat_role",
           "schema": "public",
@@ -234,6 +669,16 @@
             "contacted",
             "qualified",
             "disqualified"
+          ]
+        },
+        "membership_role": {
+          "name": "membership_role",
+          "schema": "public",
+          "items": [
+            "owner",
+            "admin",
+            "member",
+            "viewer"
           ]
         },
         "onboarding_status": {
@@ -563,6 +1008,14 @@
             "feedback"
           ]
         },
+        "auth_token_kind": {
+          "name": "auth_token_kind",
+          "schema": "public",
+          "items": [
+            "invite",
+            "password_reset"
+          ]
+        },
         "chat_role": {
           "name": "chat_role",
           "schema": "public",
@@ -592,6 +1045,16 @@
             "contacted",
             "qualified",
             "disqualified"
+          ]
+        },
+        "membership_role": {
+          "name": "membership_role",
+          "schema": "public",
+          "items": [
+            "owner",
+            "admin",
+            "member",
+            "viewer"
           ]
         },
         "onboarding_status": {
@@ -1112,6 +1575,14 @@
             "feedback"
           ]
         },
+        "auth_token_kind": {
+          "name": "auth_token_kind",
+          "schema": "public",
+          "items": [
+            "invite",
+            "password_reset"
+          ]
+        },
         "chat_role": {
           "name": "chat_role",
           "schema": "public",
@@ -1141,6 +1612,16 @@
             "contacted",
             "qualified",
             "disqualified"
+          ]
+        },
+        "membership_role": {
+          "name": "membership_role",
+          "schema": "public",
+          "items": [
+            "owner",
+            "admin",
+            "member",
+            "viewer"
           ]
         },
         "onboarding_status": {
@@ -1248,8 +1729,24 @@
           "enumItems": [],
           "mappedType": "uuid"
         },
-        "workspace_id": {
-          "name": "workspace_id",
+        "user_id": {
+          "name": "user_id",
+          "type": "uuid",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": true,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "uuid"
+        },
+        "organization_id": {
+          "name": "organization_id",
           "type": "uuid",
           "unsigned": false,
           "autoincrement": false,
@@ -1264,9 +1761,9 @@
           "enumItems": [],
           "mappedType": "uuid"
         },
-        "name": {
-          "name": "name",
-          "type": "text",
+        "role": {
+          "name": "role",
+          "type": "membership_role",
           "unsigned": false,
           "autoincrement": false,
           "primary": false,
@@ -1275,46 +1772,16 @@
           "length": null,
           "precision": null,
           "scale": null,
-          "default": null,
-          "comment": null,
-          "enumItems": [],
-          "mappedType": "text"
-        },
-        "email": {
-          "name": "email",
-          "type": "text",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": false,
-          "unique": true,
-          "length": null,
-          "precision": null,
-          "scale": null,
-          "default": null,
-          "comment": null,
-          "enumItems": [],
-          "mappedType": "text"
-        },
-        "preferred_channel": {
-          "name": "preferred_channel",
-          "type": "preferred_channel",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": true,
-          "unique": false,
-          "length": null,
-          "precision": null,
-          "scale": null,
-          "default": null,
+          "default": "'member'",
           "comment": null,
           "enumItems": [
-            "telegram",
-            "whatsapp"
+            "owner",
+            "admin",
+            "member",
+            "viewer"
           ],
           "mappedType": "unknown",
-          "nativeEnumName": "preferred_channel"
+          "nativeEnumName": "membership_role"
         },
         "created_at": {
           "name": "created_at",
@@ -1349,17 +1816,17 @@
           "mappedType": "datetime"
         }
       },
-      "name": "operators",
+      "name": "memberships",
       "schema": "public",
       "indexes": [
         {
           "columnNames": [
-            "email"
+            "organization_id"
           ],
           "composite": false,
-          "constraint": true,
-          "keyName": "operators_email_unique",
-          "unique": true,
+          "constraint": false,
+          "keyName": "memberships_organization_id_index",
+          "unique": false,
           "primary": false
         },
         {
@@ -1368,20 +1835,44 @@
           ],
           "composite": false,
           "constraint": false,
-          "keyName": "operators_pkey",
+          "keyName": "memberships_pkey",
           "unique": true,
           "primary": true
+        },
+        {
+          "columnNames": [
+            "user_id",
+            "organization_id"
+          ],
+          "composite": true,
+          "constraint": true,
+          "keyName": "memberships_user_organization_unique",
+          "unique": true,
+          "primary": false
         }
       ],
       "checks": [],
       "foreignKeys": {
-        "operators_workspace_id_foreign": {
+        "memberships_organization_id_foreign": {
           "columnNames": [
-            "workspace_id"
+            "organization_id"
           ],
-          "constraintName": "operators_workspace_id_foreign",
-          "localTableName": "public.operators",
-          "referencedTableName": "public.workspaces",
+          "constraintName": "memberships_organization_id_foreign",
+          "localTableName": "public.memberships",
+          "referencedTableName": "public.organizations",
+          "referencedColumnNames": [
+            "id"
+          ],
+          "updateRule": "cascade",
+          "deleteRule": "cascade"
+        },
+        "memberships_user_id_foreign": {
+          "columnNames": [
+            "user_id"
+          ],
+          "constraintName": "memberships_user_id_foreign",
+          "localTableName": "public.memberships",
+          "referencedTableName": "public.users",
           "referencedColumnNames": [
             "id"
           ],
@@ -1414,6 +1905,14 @@
             "feedback"
           ]
         },
+        "auth_token_kind": {
+          "name": "auth_token_kind",
+          "schema": "public",
+          "items": [
+            "invite",
+            "password_reset"
+          ]
+        },
         "chat_role": {
           "name": "chat_role",
           "schema": "public",
@@ -1443,6 +1942,390 @@
             "contacted",
             "qualified",
             "disqualified"
+          ]
+        },
+        "membership_role": {
+          "name": "membership_role",
+          "schema": "public",
+          "items": [
+            "owner",
+            "admin",
+            "member",
+            "viewer"
+          ]
+        },
+        "onboarding_status": {
+          "name": "onboarding_status",
+          "schema": "public",
+          "items": [
+            "pending",
+            "workspace_details",
+            "operator_profile",
+            "channels",
+            "first_product",
+            "completed"
+          ]
+        },
+        "outreach_tone": {
+          "name": "outreach_tone",
+          "schema": "public",
+          "items": [
+            "formal",
+            "casual",
+            "friendly"
+          ]
+        },
+        "preferred_channel": {
+          "name": "preferred_channel",
+          "schema": "public",
+          "items": [
+            "telegram",
+            "whatsapp"
+          ]
+        },
+        "schedule_channel": {
+          "name": "schedule_channel",
+          "schema": "public",
+          "items": [
+            "telegram",
+            "whatsapp"
+          ]
+        },
+        "schedule_frequency": {
+          "name": "schedule_frequency",
+          "schema": "public",
+          "items": [
+            "hourly",
+            "daily",
+            "weekly",
+            "custom"
+          ]
+        },
+        "signal_source": {
+          "name": "signal_source",
+          "schema": "public",
+          "items": [
+            "exa",
+            "tavily",
+            "perplexity",
+            "manual"
+          ]
+        },
+        "signal_type": {
+          "name": "signal_type",
+          "schema": "public",
+          "items": [
+            "content_social",
+            "hiring_org",
+            "company_activity",
+            "regulatory",
+            "buying_intent",
+            "funding",
+            "hiring",
+            "news",
+            "product_launch",
+            "leadership_change"
+          ]
+        },
+        "source_type": {
+          "name": "source_type",
+          "schema": "public",
+          "items": [
+            "news",
+            "newsletter",
+            "database",
+            "social",
+            "other"
+          ]
+        }
+      },
+      "comment": null
+    },
+    {
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": true,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": "gen_random_uuid()",
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "uuid"
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "text"
+        },
+        "timezone": {
+          "name": "timezone",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": "'UTC'",
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "text"
+        },
+        "default_currency": {
+          "name": "default_currency",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": "'USD'",
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "text"
+        },
+        "onboarding_status": {
+          "name": "onboarding_status",
+          "type": "onboarding_status",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": "'pending'",
+          "comment": null,
+          "enumItems": [
+            "pending",
+            "workspace_details",
+            "operator_profile",
+            "channels",
+            "first_product",
+            "completed"
+          ],
+          "mappedType": "unknown",
+          "nativeEnumName": "onboarding_status"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamptz(6)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": 6,
+          "precision": null,
+          "scale": null,
+          "default": "now()",
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "datetime"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamptz(6)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": 6,
+          "precision": null,
+          "scale": null,
+          "default": "now()",
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "datetime"
+        },
+        "sync_channel_chats": {
+          "name": "sync_channel_chats",
+          "type": "bool",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": "true",
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "boolean"
+        },
+        "slug": {
+          "name": "slug",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": true,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "text"
+        },
+        "plan": {
+          "name": "plan",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": "'standard'",
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "text"
+        },
+        "entitlements": {
+          "name": "entitlements",
+          "type": "jsonb",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": "'{}'",
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "json"
+        }
+      },
+      "name": "organizations",
+      "schema": "public",
+      "indexes": [
+        {
+          "columnNames": [
+            "id"
+          ],
+          "composite": false,
+          "constraint": false,
+          "keyName": "organizations_pkey",
+          "unique": true,
+          "primary": true
+        },
+        {
+          "columnNames": [
+            "slug"
+          ],
+          "composite": false,
+          "constraint": true,
+          "keyName": "organizations_slug_unique",
+          "unique": true,
+          "primary": false
+        }
+      ],
+      "checks": [],
+      "foreignKeys": {},
+      "nativeEnums": {
+        "agent_model_tier": {
+          "name": "agent_model_tier",
+          "schema": "public",
+          "items": [
+            "fast",
+            "default",
+            "heavy"
+          ]
+        },
+        "agent_type": {
+          "name": "agent_type",
+          "schema": "public",
+          "items": [
+            "orchestrator",
+            "product-context",
+            "prospect-discovery",
+            "enrichment",
+            "scoring",
+            "outreach",
+            "signal-monitor",
+            "buying-intent",
+            "feedback"
+          ]
+        },
+        "auth_token_kind": {
+          "name": "auth_token_kind",
+          "schema": "public",
+          "items": [
+            "invite",
+            "password_reset"
+          ]
+        },
+        "chat_role": {
+          "name": "chat_role",
+          "schema": "public",
+          "items": [
+            "user",
+            "assistant",
+            "tool"
+          ]
+        },
+        "chat_source_channel": {
+          "name": "chat_source_channel",
+          "schema": "public",
+          "items": [
+            "web",
+            "telegram",
+            "whatsapp"
+          ]
+        },
+        "lead_status": {
+          "name": "lead_status",
+          "schema": "public",
+          "items": [
+            "new",
+            "enriched",
+            "scored",
+            "outreach_ready",
+            "contacted",
+            "qualified",
+            "disqualified"
+          ]
+        },
+        "membership_role": {
+          "name": "membership_role",
+          "schema": "public",
+          "items": [
+            "owner",
+            "admin",
+            "member",
+            "viewer"
           ]
         },
         "onboarding_status": {
@@ -1723,6 +2606,14 @@
             "feedback"
           ]
         },
+        "auth_token_kind": {
+          "name": "auth_token_kind",
+          "schema": "public",
+          "items": [
+            "invite",
+            "password_reset"
+          ]
+        },
         "chat_role": {
           "name": "chat_role",
           "schema": "public",
@@ -1752,6 +2643,16 @@
             "contacted",
             "qualified",
             "disqualified"
+          ]
+        },
+        "membership_role": {
+          "name": "membership_role",
+          "schema": "public",
+          "items": [
+            "owner",
+            "admin",
+            "member",
+            "viewer"
           ]
         },
         "onboarding_status": {
@@ -2059,6 +2960,14 @@
             "feedback"
           ]
         },
+        "auth_token_kind": {
+          "name": "auth_token_kind",
+          "schema": "public",
+          "items": [
+            "invite",
+            "password_reset"
+          ]
+        },
         "chat_role": {
           "name": "chat_role",
           "schema": "public",
@@ -2088,6 +2997,16 @@
             "contacted",
             "qualified",
             "disqualified"
+          ]
+        },
+        "membership_role": {
+          "name": "membership_role",
+          "schema": "public",
+          "items": [
+            "owner",
+            "admin",
+            "member",
+            "viewer"
           ]
         },
         "onboarding_status": {
@@ -2368,6 +3287,14 @@
             "feedback"
           ]
         },
+        "auth_token_kind": {
+          "name": "auth_token_kind",
+          "schema": "public",
+          "items": [
+            "invite",
+            "password_reset"
+          ]
+        },
         "chat_role": {
           "name": "chat_role",
           "schema": "public",
@@ -2397,6 +3324,16 @@
             "contacted",
             "qualified",
             "disqualified"
+          ]
+        },
+        "membership_role": {
+          "name": "membership_role",
+          "schema": "public",
+          "items": [
+            "owner",
+            "admin",
+            "member",
+            "viewer"
           ]
         },
         "onboarding_status": {
@@ -2618,6 +3555,14 @@
             "feedback"
           ]
         },
+        "auth_token_kind": {
+          "name": "auth_token_kind",
+          "schema": "public",
+          "items": [
+            "invite",
+            "password_reset"
+          ]
+        },
         "chat_role": {
           "name": "chat_role",
           "schema": "public",
@@ -2647,6 +3592,16 @@
             "contacted",
             "qualified",
             "disqualified"
+          ]
+        },
+        "membership_role": {
+          "name": "membership_role",
+          "schema": "public",
+          "items": [
+            "owner",
+            "admin",
+            "member",
+            "viewer"
           ]
         },
         "onboarding_status": {
@@ -2964,6 +3919,14 @@
             "feedback"
           ]
         },
+        "auth_token_kind": {
+          "name": "auth_token_kind",
+          "schema": "public",
+          "items": [
+            "invite",
+            "password_reset"
+          ]
+        },
         "chat_role": {
           "name": "chat_role",
           "schema": "public",
@@ -2993,6 +3956,16 @@
             "contacted",
             "qualified",
             "disqualified"
+          ]
+        },
+        "membership_role": {
+          "name": "membership_role",
+          "schema": "public",
+          "items": [
+            "owner",
+            "admin",
+            "member",
+            "viewer"
           ]
         },
         "onboarding_status": {
@@ -3252,6 +4225,14 @@
             "feedback"
           ]
         },
+        "auth_token_kind": {
+          "name": "auth_token_kind",
+          "schema": "public",
+          "items": [
+            "invite",
+            "password_reset"
+          ]
+        },
         "chat_role": {
           "name": "chat_role",
           "schema": "public",
@@ -3281,6 +4262,16 @@
             "contacted",
             "qualified",
             "disqualified"
+          ]
+        },
+        "membership_role": {
+          "name": "membership_role",
+          "schema": "public",
+          "items": [
+            "owner",
+            "admin",
+            "member",
+            "viewer"
           ]
         },
         "onboarding_status": {
@@ -3563,6 +4554,14 @@
             "feedback"
           ]
         },
+        "auth_token_kind": {
+          "name": "auth_token_kind",
+          "schema": "public",
+          "items": [
+            "invite",
+            "password_reset"
+          ]
+        },
         "chat_role": {
           "name": "chat_role",
           "schema": "public",
@@ -3592,6 +4591,16 @@
             "contacted",
             "qualified",
             "disqualified"
+          ]
+        },
+        "membership_role": {
+          "name": "membership_role",
+          "schema": "public",
+          "items": [
+            "owner",
+            "admin",
+            "member",
+            "viewer"
           ]
         },
         "onboarding_status": {
@@ -3706,7 +4715,7 @@
           "autoincrement": false,
           "primary": false,
           "nullable": false,
-          "unique": true,
+          "unique": false,
           "length": null,
           "precision": null,
           "scale": null,
@@ -3722,7 +4731,7 @@
           "autoincrement": false,
           "primary": false,
           "nullable": false,
-          "unique": true,
+          "unique": false,
           "length": null,
           "precision": null,
           "scale": null,
@@ -3863,6 +4872,22 @@
           "comment": null,
           "enumItems": [],
           "mappedType": "integer"
+        },
+        "organization_id": {
+          "name": "organization_id",
+          "type": "uuid",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": true,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "uuid"
         }
       },
       "name": "products",
@@ -3870,11 +4895,33 @@
       "indexes": [
         {
           "columnNames": [
-            "name"
+            "organization_id"
           ],
           "composite": false,
+          "constraint": false,
+          "keyName": "products_organization_id_index",
+          "unique": false,
+          "primary": false
+        },
+        {
+          "columnNames": [
+            "organization_id",
+            "name"
+          ],
+          "composite": true,
           "constraint": true,
-          "keyName": "products_name_unique",
+          "keyName": "products_organization_name_unique",
+          "unique": true,
+          "primary": false
+        },
+        {
+          "columnNames": [
+            "organization_id",
+            "slug"
+          ],
+          "composite": true,
+          "constraint": true,
+          "keyName": "products_organization_slug_unique",
           "unique": true,
           "primary": false
         },
@@ -3887,16 +4934,6 @@
           "keyName": "products_pkey",
           "unique": true,
           "primary": true
-        },
-        {
-          "columnNames": [
-            "slug"
-          ],
-          "composite": false,
-          "constraint": true,
-          "keyName": "products_slug_unique",
-          "unique": true,
-          "primary": false
         }
       ],
       "checks": [
@@ -3907,7 +4944,21 @@
           "expression": "(icp_strictness >= 0) AND (icp_strictness <= 100)"
         }
       ],
-      "foreignKeys": {},
+      "foreignKeys": {
+        "products_organization_id_foreign": {
+          "columnNames": [
+            "organization_id"
+          ],
+          "constraintName": "products_organization_id_foreign",
+          "localTableName": "public.products",
+          "referencedTableName": "public.organizations",
+          "referencedColumnNames": [
+            "id"
+          ],
+          "updateRule": "cascade",
+          "deleteRule": "cascade"
+        }
+      },
       "nativeEnums": {
         "agent_model_tier": {
           "name": "agent_model_tier",
@@ -3931,6 +4982,14 @@
             "signal-monitor",
             "buying-intent",
             "feedback"
+          ]
+        },
+        "auth_token_kind": {
+          "name": "auth_token_kind",
+          "schema": "public",
+          "items": [
+            "invite",
+            "password_reset"
           ]
         },
         "chat_role": {
@@ -3962,6 +5021,16 @@
             "contacted",
             "qualified",
             "disqualified"
+          ]
+        },
+        "membership_role": {
+          "name": "membership_role",
+          "schema": "public",
+          "items": [
+            "owner",
+            "admin",
+            "member",
+            "viewer"
           ]
         },
         "onboarding_status": {
@@ -4286,11 +5355,53 @@
           "comment": null,
           "enumItems": [],
           "mappedType": "datetime"
+        },
+        "organization_id": {
+          "name": "organization_id",
+          "type": "uuid",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "uuid"
+        },
+        "created_by_user_id": {
+          "name": "created_by_user_id",
+          "type": "uuid",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "uuid"
         }
       },
       "name": "schedules",
       "schema": "public",
       "indexes": [
+        {
+          "columnNames": [
+            "organization_id"
+          ],
+          "composite": false,
+          "constraint": false,
+          "keyName": "schedules_organization_id_index",
+          "unique": false,
+          "primary": false
+        },
         {
           "columnNames": [
             "id"
@@ -4304,6 +5415,32 @@
       ],
       "checks": [],
       "foreignKeys": {
+        "schedules_created_by_user_id_foreign": {
+          "columnNames": [
+            "created_by_user_id"
+          ],
+          "constraintName": "schedules_created_by_user_id_foreign",
+          "localTableName": "public.schedules",
+          "referencedTableName": "public.users",
+          "referencedColumnNames": [
+            "id"
+          ],
+          "updateRule": "cascade",
+          "deleteRule": "set null"
+        },
+        "schedules_organization_id_foreign": {
+          "columnNames": [
+            "organization_id"
+          ],
+          "constraintName": "schedules_organization_id_foreign",
+          "localTableName": "public.schedules",
+          "referencedTableName": "public.organizations",
+          "referencedColumnNames": [
+            "id"
+          ],
+          "updateRule": "cascade",
+          "deleteRule": "cascade"
+        },
         "schedules_product_id_foreign": {
           "columnNames": [
             "product_id"
@@ -4343,6 +5480,14 @@
             "feedback"
           ]
         },
+        "auth_token_kind": {
+          "name": "auth_token_kind",
+          "schema": "public",
+          "items": [
+            "invite",
+            "password_reset"
+          ]
+        },
         "chat_role": {
           "name": "chat_role",
           "schema": "public",
@@ -4372,6 +5517,397 @@
             "contacted",
             "qualified",
             "disqualified"
+          ]
+        },
+        "membership_role": {
+          "name": "membership_role",
+          "schema": "public",
+          "items": [
+            "owner",
+            "admin",
+            "member",
+            "viewer"
+          ]
+        },
+        "onboarding_status": {
+          "name": "onboarding_status",
+          "schema": "public",
+          "items": [
+            "pending",
+            "workspace_details",
+            "operator_profile",
+            "channels",
+            "first_product",
+            "completed"
+          ]
+        },
+        "outreach_tone": {
+          "name": "outreach_tone",
+          "schema": "public",
+          "items": [
+            "formal",
+            "casual",
+            "friendly"
+          ]
+        },
+        "preferred_channel": {
+          "name": "preferred_channel",
+          "schema": "public",
+          "items": [
+            "telegram",
+            "whatsapp"
+          ]
+        },
+        "schedule_channel": {
+          "name": "schedule_channel",
+          "schema": "public",
+          "items": [
+            "telegram",
+            "whatsapp"
+          ]
+        },
+        "schedule_frequency": {
+          "name": "schedule_frequency",
+          "schema": "public",
+          "items": [
+            "hourly",
+            "daily",
+            "weekly",
+            "custom"
+          ]
+        },
+        "signal_source": {
+          "name": "signal_source",
+          "schema": "public",
+          "items": [
+            "exa",
+            "tavily",
+            "perplexity",
+            "manual"
+          ]
+        },
+        "signal_type": {
+          "name": "signal_type",
+          "schema": "public",
+          "items": [
+            "content_social",
+            "hiring_org",
+            "company_activity",
+            "regulatory",
+            "buying_intent",
+            "funding",
+            "hiring",
+            "news",
+            "product_launch",
+            "leadership_change"
+          ]
+        },
+        "source_type": {
+          "name": "source_type",
+          "schema": "public",
+          "items": [
+            "news",
+            "newsletter",
+            "database",
+            "social",
+            "other"
+          ]
+        }
+      },
+      "comment": null
+    },
+    {
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": true,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": "gen_random_uuid()",
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "uuid"
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "uuid",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "uuid"
+        },
+        "token_hash": {
+          "name": "token_hash",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": true,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "text"
+        },
+        "active_organization_id": {
+          "name": "active_organization_id",
+          "type": "uuid",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "uuid"
+        },
+        "expires_at": {
+          "name": "expires_at",
+          "type": "timestamptz(6)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": 6,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "datetime"
+        },
+        "last_seen_at": {
+          "name": "last_seen_at",
+          "type": "timestamptz(6)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": 6,
+          "precision": null,
+          "scale": null,
+          "default": "now()",
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "datetime"
+        },
+        "ip": {
+          "name": "ip",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "text"
+        },
+        "user_agent": {
+          "name": "user_agent",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "text"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamptz(6)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": 6,
+          "precision": null,
+          "scale": null,
+          "default": "now()",
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "datetime"
+        }
+      },
+      "name": "sessions",
+      "schema": "public",
+      "indexes": [
+        {
+          "columnNames": [
+            "expires_at"
+          ],
+          "composite": false,
+          "constraint": false,
+          "keyName": "sessions_expires_at_index",
+          "unique": false,
+          "primary": false
+        },
+        {
+          "columnNames": [
+            "id"
+          ],
+          "composite": false,
+          "constraint": false,
+          "keyName": "sessions_pkey",
+          "unique": true,
+          "primary": true
+        },
+        {
+          "columnNames": [
+            "token_hash"
+          ],
+          "composite": false,
+          "constraint": true,
+          "keyName": "sessions_token_hash_unique",
+          "unique": true,
+          "primary": false
+        },
+        {
+          "columnNames": [
+            "user_id"
+          ],
+          "composite": false,
+          "constraint": false,
+          "keyName": "sessions_user_id_index",
+          "unique": false,
+          "primary": false
+        }
+      ],
+      "checks": [],
+      "foreignKeys": {
+        "sessions_active_organization_id_foreign": {
+          "columnNames": [
+            "active_organization_id"
+          ],
+          "constraintName": "sessions_active_organization_id_foreign",
+          "localTableName": "public.sessions",
+          "referencedTableName": "public.organizations",
+          "referencedColumnNames": [
+            "id"
+          ],
+          "updateRule": "cascade",
+          "deleteRule": "set null"
+        },
+        "sessions_user_id_foreign": {
+          "columnNames": [
+            "user_id"
+          ],
+          "constraintName": "sessions_user_id_foreign",
+          "localTableName": "public.sessions",
+          "referencedTableName": "public.users",
+          "referencedColumnNames": [
+            "id"
+          ],
+          "updateRule": "cascade",
+          "deleteRule": "cascade"
+        }
+      },
+      "nativeEnums": {
+        "agent_model_tier": {
+          "name": "agent_model_tier",
+          "schema": "public",
+          "items": [
+            "fast",
+            "default",
+            "heavy"
+          ]
+        },
+        "agent_type": {
+          "name": "agent_type",
+          "schema": "public",
+          "items": [
+            "orchestrator",
+            "product-context",
+            "prospect-discovery",
+            "enrichment",
+            "scoring",
+            "outreach",
+            "signal-monitor",
+            "buying-intent",
+            "feedback"
+          ]
+        },
+        "auth_token_kind": {
+          "name": "auth_token_kind",
+          "schema": "public",
+          "items": [
+            "invite",
+            "password_reset"
+          ]
+        },
+        "chat_role": {
+          "name": "chat_role",
+          "schema": "public",
+          "items": [
+            "user",
+            "assistant",
+            "tool"
+          ]
+        },
+        "chat_source_channel": {
+          "name": "chat_source_channel",
+          "schema": "public",
+          "items": [
+            "web",
+            "telegram",
+            "whatsapp"
+          ]
+        },
+        "lead_status": {
+          "name": "lead_status",
+          "schema": "public",
+          "items": [
+            "new",
+            "enriched",
+            "scored",
+            "outreach_ready",
+            "contacted",
+            "qualified",
+            "disqualified"
+          ]
+        },
+        "membership_role": {
+          "name": "membership_role",
+          "schema": "public",
+          "items": [
+            "owner",
+            "admin",
+            "member",
+            "viewer"
           ]
         },
         "onboarding_status": {
@@ -4724,6 +6260,14 @@
             "feedback"
           ]
         },
+        "auth_token_kind": {
+          "name": "auth_token_kind",
+          "schema": "public",
+          "items": [
+            "invite",
+            "password_reset"
+          ]
+        },
         "chat_role": {
           "name": "chat_role",
           "schema": "public",
@@ -4753,6 +6297,16 @@
             "contacted",
             "qualified",
             "disqualified"
+          ]
+        },
+        "membership_role": {
+          "name": "membership_role",
+          "schema": "public",
+          "items": [
+            "owner",
+            "admin",
+            "member",
+            "viewer"
           ]
         },
         "onboarding_status": {
@@ -4860,6 +6414,38 @@
           "enumItems": [],
           "mappedType": "uuid"
         },
+        "email": {
+          "name": "email",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": true,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "text"
+        },
+        "password_hash": {
+          "name": "password_hash",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "text"
+        },
         "name": {
           "name": "name",
           "type": "text",
@@ -4876,77 +6462,57 @@
           "enumItems": [],
           "mappedType": "text"
         },
-        "timezone": {
-          "name": "timezone",
-          "type": "text",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": false,
-          "unique": false,
-          "length": null,
-          "precision": null,
-          "scale": null,
-          "default": "'UTC'",
-          "comment": null,
-          "enumItems": [],
-          "mappedType": "text"
-        },
-        "default_currency": {
-          "name": "default_currency",
-          "type": "text",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": false,
-          "unique": false,
-          "length": null,
-          "precision": null,
-          "scale": null,
-          "default": "'USD'",
-          "comment": null,
-          "enumItems": [],
-          "mappedType": "text"
-        },
-        "onboarding_status": {
-          "name": "onboarding_status",
-          "type": "onboarding_status",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": false,
-          "unique": false,
-          "length": null,
-          "precision": null,
-          "scale": null,
-          "default": "'pending'",
-          "comment": null,
-          "enumItems": [
-            "pending",
-            "workspace_details",
-            "operator_profile",
-            "channels",
-            "first_product",
-            "completed"
-          ],
-          "mappedType": "unknown",
-          "nativeEnumName": "onboarding_status"
-        },
-        "singleton": {
-          "name": "singleton",
+        "is_platform_admin": {
+          "name": "is_platform_admin",
           "type": "bool",
           "unsigned": false,
           "autoincrement": false,
           "primary": false,
           "nullable": false,
-          "unique": true,
+          "unique": false,
           "length": null,
           "precision": null,
           "scale": null,
-          "default": "true",
+          "default": "false",
           "comment": null,
           "enumItems": [],
           "mappedType": "boolean"
+        },
+        "preferred_channel": {
+          "name": "preferred_channel",
+          "type": "preferred_channel",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [
+            "telegram",
+            "whatsapp"
+          ],
+          "mappedType": "unknown",
+          "nativeEnumName": "preferred_channel"
+        },
+        "last_login_at": {
+          "name": "last_login_at",
+          "type": "timestamptz(6)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": 6,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "datetime"
         },
         "created_at": {
           "name": "created_at",
@@ -4979,47 +6545,30 @@
           "comment": null,
           "enumItems": [],
           "mappedType": "datetime"
-        },
-        "sync_channel_chats": {
-          "name": "sync_channel_chats",
-          "type": "bool",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": false,
-          "unique": false,
-          "length": null,
-          "precision": null,
-          "scale": null,
-          "default": "true",
-          "comment": null,
-          "enumItems": [],
-          "mappedType": "boolean"
         }
       },
-      "name": "workspaces",
+      "name": "users",
       "schema": "public",
       "indexes": [
+        {
+          "columnNames": [
+            "email"
+          ],
+          "composite": false,
+          "constraint": true,
+          "keyName": "users_email_unique",
+          "unique": true,
+          "primary": false
+        },
         {
           "columnNames": [
             "id"
           ],
           "composite": false,
           "constraint": false,
-          "keyName": "workspaces_pkey",
+          "keyName": "users_pkey",
           "unique": true,
           "primary": true
-        },
-        {
-          "columnNames": [
-            "singleton"
-          ],
-          "composite": false,
-          "constraint": false,
-          "keyName": "workspaces_singleton_unique",
-          "unique": true,
-          "primary": false,
-          "expression": "CREATE UNIQUE INDEX workspaces_singleton_unique ON public.workspaces USING btree (singleton) WHERE (singleton = true)"
         }
       ],
       "checks": [],
@@ -5047,6 +6596,14 @@
             "signal-monitor",
             "buying-intent",
             "feedback"
+          ]
+        },
+        "auth_token_kind": {
+          "name": "auth_token_kind",
+          "schema": "public",
+          "items": [
+            "invite",
+            "password_reset"
           ]
         },
         "chat_role": {
@@ -5078,6 +6635,16 @@
             "contacted",
             "qualified",
             "disqualified"
+          ]
+        },
+        "membership_role": {
+          "name": "membership_role",
+          "schema": "public",
+          "items": [
+            "owner",
+            "admin",
+            "member",
+            "viewer"
           ]
         },
         "onboarding_status": {
@@ -5193,6 +6760,14 @@
         "feedback"
       ]
     },
+    "auth_token_kind": {
+      "name": "auth_token_kind",
+      "schema": "public",
+      "items": [
+        "invite",
+        "password_reset"
+      ]
+    },
     "chat_role": {
       "name": "chat_role",
       "schema": "public",
@@ -5222,6 +6797,16 @@
         "contacted",
         "qualified",
         "disqualified"
+      ]
+    },
+    "membership_role": {
+      "name": "membership_role",
+      "schema": "public",
+      "items": [
+        "owner",
+        "admin",
+        "member",
+        "viewer"
       ]
     },
     "onboarding_status": {

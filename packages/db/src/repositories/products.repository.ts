@@ -1,5 +1,6 @@
 import { EntityManager } from '@mikro-orm/postgresql';
 
+import { Organization } from '../entities/organization.entity';
 import { Product } from '../entities/product.entity';
 import { ProductIcp } from '../entities/product-icp.entity';
 import { ProductSalesChannel } from '../entities/product-sales-channel.entity';
@@ -12,24 +13,35 @@ export interface ProductSummary {
   slug: string;
 }
 
+/**
+ * Every method is scoped to an organization: a product name is only a key inside its
+ * organization, and id lookups always join to the organization so a row from another
+ * tenant is simply "not found".
+ */
 export class ProductsRepository {
   constructor(private readonly em: EntityManager) {}
 
-  /** Return all products as lightweight summaries. */
-  async listProducts(): Promise<ProductSummary[]> {
-    const products = await this.em.find(Product, {}, { fields: ['id', 'name', 'slug'] });
+  /** Return all products of an organization as lightweight summaries. */
+  async listProducts(orgId: string): Promise<ProductSummary[]> {
+    const products = await this.em
+      .fork()
+      .find(Product, { organization: orgId }, { fields: ['id', 'name', 'slug'], orderBy: { name: 'ASC' } });
     return products.map((p) => ({ id: p.id, productName: p.name, slug: p.slug }));
+  }
+
+  async countProducts(orgId: string): Promise<number> {
+    return this.em.fork().count(Product, { organization: orgId });
   }
 
   /**
    * Load a product with every related record (ICP, channels, sources, prospects).
-   * Returns `null` if the product doesn't exist.
+   * Returns `null` if the product doesn't exist in this organization.
    */
-  async getProduct(productName: string): Promise<Product | null> {
+  async getProduct(orgId: string, productName: string): Promise<Product | null> {
     const em = this.em.fork();
     return em.findOne(
       Product,
-      { name: productName },
+      { organization: orgId, name: productName },
       { populate: ['icp', 'salesChannels', 'sources', 'predefinedProspects'] },
     );
   }
@@ -38,33 +50,29 @@ export class ProductsRepository {
    * Load product knowledge in the legacy `ProductKnowledge` shape the agents expect.
    * Kept for tool-schema stability.
    */
-  async getProductKnowledge(productName: string): Promise<ProductKnowledgeView> {
-    const product = await this.getProduct(productName);
+  async getProductKnowledge(orgId: string, productName: string): Promise<ProductKnowledgeView> {
+    const product = await this.getProduct(orgId, productName);
     if (!product) {
-      throw new Error(`Product "${productName}" not found`);
+      throw new Error(`Product "${productName}" not found in this organization`);
     }
     return toKnowledgeView(product);
   }
 
-  async getProductSources(productName: string): Promise<SourceView[]> {
-    const product = await this.getProduct(productName);
+  async getProductSources(orgId: string, productName: string): Promise<SourceView[]> {
+    const product = await this.getProduct(orgId, productName);
     if (!product) return [];
     return product.sources.getItems().map(toSourceView);
   }
 
-  /** No-op cache shim — kept so agent code compiled against the legacy API still calls it. */
-  invalidateCache(_productName: string): void {
-    // Postgres reads are fast; no per-process cache layer.
-  }
-
-  /** Upsert a product. Used by onboarding + product-management features. */
-  async upsertProduct(input: UpsertProductInput): Promise<Product> {
+  /** Upsert a product by name inside an organization. */
+  async upsertProduct(orgId: string, input: UpsertProductInput): Promise<Product> {
     const em = this.em.fork();
-    let product = await em.findOne(Product, { name: input.name });
+    let product = await em.findOne(Product, { organization: orgId, name: input.name });
     if (!product) {
       product = em.create(
         Product,
         {
+          organization: em.getReference(Organization, orgId),
           name: input.name,
           slug: input.slug ?? slugify(input.name),
           generalInfo: input.generalInfo,
@@ -83,13 +91,20 @@ export class ProductsRepository {
     return product;
   }
 
-  async findBySlug(slug: string): Promise<Product | null> {
-    return this.em.findOne(Product, { slug });
+  async findBySlug(orgId: string, slug: string): Promise<Product | null> {
+    return this.em.fork().findOne(Product, { organization: orgId, slug });
   }
 
-  async findById(id: string): Promise<Product | null> {
-    return this.em.findOne(Product, { id });
+  async findById(orgId: string, id: string): Promise<Product | null> {
+    return this.em.fork().findOne(Product, { organization: orgId, id });
   }
+}
+
+/** Resolve a product by name inside an organization or throw. Shared by the other repositories. */
+export async function requireProduct(em: EntityManager, orgId: string, productName: string): Promise<Product> {
+  const product = await em.findOne(Product, { organization: orgId, name: productName });
+  if (!product) throw new Error(`Product "${productName}" not found in this organization`);
+  return product;
 }
 
 export interface UpsertProductInput {
@@ -194,7 +209,7 @@ function toSourceView(s: ProductSource): SourceView {
   };
 }
 
-function slugify(name: string): string {
+export function slugify(name: string): string {
   return name
     .toLowerCase()
     .trim()

@@ -82,6 +82,7 @@ Never fabricate data. If you can't find something, mark it as unknown.`;
       {
         name: 'update_lead',
         description: 'Update a lead record with enriched data.',
+        requires: { permission: 'leads:write' },
         schema: {
           id: z.string().optional(),
           company: z.string(),
@@ -95,9 +96,10 @@ Never fabricate data. If you can't find something, mark it as unknown.`;
           enrichmentData: z.record(z.string(), z.unknown()).optional(),
           status: z.enum(['enriched']).optional(),
         },
-        handler: async (input) =>
+        handler: async (input, ctx) =>
           this.leadsRepo.saveLead(
-            input as unknown as Parameters<LeadsRepository['saveLead']>[0],
+            ctx.org.id,
+            input as unknown as Parameters<LeadsRepository['saveLead']>[1],
           ),
       },
     ];

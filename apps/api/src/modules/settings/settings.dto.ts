@@ -1,7 +1,7 @@
-import { IsEmail, IsEnum, IsOptional, IsString, Length, Matches } from 'class-validator';
+import { IsEnum, IsOptional, IsString, Length, Matches, ValidateIf } from 'class-validator';
 import { PreferredChannel } from '@hothotleads/db';
 
-export class UpdateWorkspaceDto {
+export class UpdateOrganizationDto {
   @IsOptional()
   @IsString()
   @Length(1, 80)
@@ -18,17 +18,14 @@ export class UpdateWorkspaceDto {
   defaultCurrency?: string;
 }
 
-export class UpdateOperatorDto {
+export class UpdateProfileDto {
   @IsOptional()
   @IsString()
   @Length(1, 80)
   name?: string;
 
-  @IsOptional()
-  @IsEmail()
-  email?: string;
-
+  @ValidateIf((o) => o.preferredChannel !== null)
   @IsOptional()
   @IsEnum(PreferredChannel)
-  preferredChannel?: PreferredChannel;
+  preferredChannel?: PreferredChannel | null;
 }

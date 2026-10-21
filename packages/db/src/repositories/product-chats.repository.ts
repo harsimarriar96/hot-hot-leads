@@ -18,20 +18,20 @@ export interface AppendMessageInput {
 export class ProductChatsRepository {
   constructor(private readonly em: EntityManager) {}
 
-  async getOrCreateForProduct(productId: string): Promise<ProductChat> {
+  async getOrCreateForProduct(orgId: string, productId: string): Promise<ProductChat> {
     const em = this.em.fork();
-    const existing = await em.findOne(ProductChat, { product: productId });
+    const product = await em.findOneOrFail(Product, { id: productId, organization: orgId });
+    const existing = await em.findOne(ProductChat, { product });
     if (existing) return existing;
 
-    const product = await em.findOneOrFail(Product, { id: productId });
     const chat = em.create(ProductChat, { product }, { partial: true });
     await em.persistAndFlush(chat);
     return chat;
   }
 
-  async appendMessage(chatId: string, input: AppendMessageInput): Promise<ProductChatMessage> {
+  async appendMessage(orgId: string, chatId: string, input: AppendMessageInput): Promise<ProductChatMessage> {
     const em = this.em.fork();
-    const chat = await em.findOneOrFail(ProductChat, { id: chatId });
+    const chat = await em.findOneOrFail(ProductChat, { id: chatId, product: { organization: orgId } });
     const message = em.create(
       ProductChatMessage,
       {
@@ -47,26 +47,29 @@ export class ProductChatsRepository {
     return message;
   }
 
-  async listMessages(chatId: string): Promise<ProductChatMessage[]> {
-    return this.em.find(
+  async listMessages(orgId: string, chatId: string): Promise<ProductChatMessage[]> {
+    return this.em.fork().find(
       ProductChatMessage,
-      { chat: chatId },
+      { chat: { id: chatId, product: { organization: orgId } } },
       { orderBy: { createdAt: 'ASC' } },
     );
   }
 
-  async clearMessages(chatId: string): Promise<void> {
+  async clearMessages(orgId: string, chatId: string): Promise<void> {
     const em = this.em.fork();
-    const rows = await em.find(ProductChatMessage, { chat: chatId });
+    const rows = await em.find(ProductChatMessage, {
+      chat: { id: chatId, product: { organization: orgId } },
+    });
     for (const row of rows) em.remove(row);
     await em.flush();
   }
 
   /** Returns messages formatted for Anthropic messages API input. */
   async getHistoryAsMessages(
+    orgId: string,
     chatId: string,
   ): Promise<Array<{ role: 'user' | 'assistant'; content: ChatContentBlock[] }>> {
-    const messages = await this.listMessages(chatId);
+    const messages = await this.listMessages(orgId, chatId);
     return messages
       .filter((m) => m.role === ChatRole.USER || m.role === ChatRole.ASSISTANT)
       .map((m) => ({

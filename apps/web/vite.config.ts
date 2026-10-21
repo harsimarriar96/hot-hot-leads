@@ -19,8 +19,17 @@ export default defineConfig({
       '/webhooks': API_TARGET,
     },
   },
+  // @hothotleads/types is a workspace symlink compiled to CommonJS. Vite only runs its
+  // CommonJS transform under node_modules by default, so include the package explicitly
+  // for both the production bundle and the dev server's dependency pre-bundling.
+  optimizeDeps: {
+    include: ['@hothotleads/types'],
+  },
   build: {
     outDir: 'dist',
     emptyOutDir: true,
+    commonjsOptions: {
+      include: [/node_modules/, /packages\/types\/dist/],
+    },
   },
 });

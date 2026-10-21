@@ -14,6 +14,8 @@ import {
 import { SkeletonRow } from '@/components/ui/skeleton';
 import { productsApi, adminApi } from '@/lib/products';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/use-auth';
+import { Can, GateHint, useLimitReason } from '@/components/gate';
 
 export function ProductsListPage() {
   const qc = useQueryClient();
@@ -25,6 +27,9 @@ export function ProductsListPage() {
   });
   const [creating, setCreating] = useState(false);
   const [seeding, setSeeding] = useState(false);
+  const { can } = useAuth();
+  const limitReason = useLimitReason('maxProducts', data?.length ?? 0);
+  const createBlocked = Boolean(limitReason);
 
   async function loadDemoData() {
     setSeeding(true);
@@ -54,10 +59,14 @@ export function ProductsListPage() {
             {data ? `${data.length} active` : '—'}
           </span>
         </div>
-        <Button onClick={() => setCreating(true)}>
-          <Plus className="h-3.5 w-3.5" />
-          New product
-        </Button>
+        <Can perm="products:write">
+          <GateHint reason={limitReason}>
+            <Button onClick={() => setCreating(true)} disabled={createBlocked}>
+              <Plus className="h-3.5 w-3.5" />
+              New product
+            </Button>
+          </GateHint>
+        </Can>
       </header>
 
       {isLoading && (
@@ -71,14 +80,24 @@ export function ProductsListPage() {
       {data && data.length === 0 && (
         <div className="rounded-lg border border-dashed border-[var(--border)] px-6 py-14 text-center">
           <p className="text-sm text-[var(--text-secondary)]">
-            No products. Create one to start prospecting.
+            {can('products:write')
+              ? 'No products. Create one to start prospecting.'
+              : 'No products yet. An admin or member can create one.'}
           </p>
-          <div className="mt-4 flex items-center justify-center gap-2">
-            <Button onClick={() => setCreating(true)}>Create product</Button>
-            <Button variant="ghost" onClick={loadDemoData} disabled={seeding}>
-              {seeding ? 'Loading…' : 'Load demo data'}
-            </Button>
-          </div>
+          {can('products:write') && (
+            <div className="mt-4 flex items-center justify-center gap-2">
+              <GateHint reason={limitReason}>
+                <Button onClick={() => setCreating(true)} disabled={createBlocked}>
+                  Create product
+                </Button>
+              </GateHint>
+              <GateHint reason={limitReason}>
+                <Button variant="ghost" onClick={loadDemoData} disabled={seeding || createBlocked}>
+                  {seeding ? 'Loading…' : 'Load demo data'}
+                </Button>
+              </GateHint>
+            </div>
+          )}
         </div>
       )}
 

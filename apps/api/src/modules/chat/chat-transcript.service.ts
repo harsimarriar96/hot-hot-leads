@@ -12,17 +12,18 @@ const SENSITIVE_KEY = /token|credential|ciphertext|secret/i;
 export class ChatTranscriptService {
   constructor(private readonly chatsRepo: ProductChatsRepository) {}
 
-  async getOrCreateChatForProduct(productId: string) {
-    return this.chatsRepo.getOrCreateForProduct(productId);
+  async getOrCreateChatForProduct(orgId: string, productId: string) {
+    return this.chatsRepo.getOrCreateForProduct(orgId, productId);
   }
 
   async persistUserMessage(
+    orgId: string,
     chatId: string,
     text: string,
     sourceChannel: ChatSourceChannel,
     sourceRef?: string,
   ) {
-    return this.chatsRepo.appendMessage(chatId, {
+    return this.chatsRepo.appendMessage(orgId, chatId, {
       role: ChatRole.USER,
       contentBlocks: [{ type: 'text', text }],
       sourceChannel,
@@ -31,6 +32,7 @@ export class ChatTranscriptService {
   }
 
   async persistAssistantMessage(
+    orgId: string,
     chatId: string,
     contentBlocks: ChatContentBlock[],
     sourceChannel: ChatSourceChannel,
@@ -41,19 +43,19 @@ export class ChatTranscriptService {
       }
       return b;
     });
-    return this.chatsRepo.appendMessage(chatId, {
+    return this.chatsRepo.appendMessage(orgId, chatId, {
       role: ChatRole.ASSISTANT,
       contentBlocks: scrubbed,
       sourceChannel,
     });
   }
 
-  async listMessages(chatId: string) {
-    return this.chatsRepo.listMessages(chatId);
+  async listMessages(orgId: string, chatId: string) {
+    return this.chatsRepo.listMessages(orgId, chatId);
   }
 
-  async clearMessages(chatId: string) {
-    return this.chatsRepo.clearMessages(chatId);
+  async clearMessages(orgId: string, chatId: string) {
+    return this.chatsRepo.clearMessages(orgId, chatId);
   }
 }
 

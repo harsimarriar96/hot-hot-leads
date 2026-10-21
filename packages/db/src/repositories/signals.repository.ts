@@ -3,6 +3,7 @@ import { EntityManager } from '@mikro-orm/postgresql';
 import { Signal } from '../entities/signal.entity';
 import { Product } from '../entities/product.entity';
 import { SignalSource, SignalType } from '../enums';
+import { requireProduct } from './products.repository';
 
 export interface SaveSignalInput {
   productName: string;
@@ -19,9 +20,9 @@ export interface SaveSignalInput {
 export class SignalsRepository {
   constructor(private readonly em: EntityManager) {}
 
-  async saveSignal(input: SaveSignalInput): Promise<{ id: string }> {
+  async saveSignal(orgId: string, input: SaveSignalInput): Promise<{ id: string }> {
     const em = this.em.fork();
-    const product = await em.findOneOrFail(Product, { name: input.productName });
+    const product = await requireProduct(em, orgId, input.productName);
 
     const detectedAt = input.detectedAt
       ? typeof input.detectedAt === 'string'
@@ -56,9 +57,9 @@ export class SignalsRepository {
   }
 
   /** Return signals for a product detected within the last `daysBack` days. */
-  async getSignals(productName: string, daysBack = 7): Promise<Signal[]> {
+  async getSignals(orgId: string, productName: string, daysBack = 7): Promise<Signal[]> {
     const em = this.em.fork();
-    const product = await em.findOne(Product, { name: productName });
+    const product = await em.findOne(Product, { organization: orgId, name: productName });
     if (!product) return [];
 
     const cutoff = new Date(Date.now() - daysBack * 24 * 60 * 60 * 1000);
@@ -73,11 +74,11 @@ export class SignalsRepository {
     );
   }
 
-  async findActiveSignals(productId: string): Promise<Signal[]> {
-    return this.em.find(
+  async findActiveSignals(orgId: string, productId: string): Promise<Signal[]> {
+    return this.em.fork().find(
       Signal,
       {
-        product: productId,
+        product: { id: productId, organization: orgId },
         $or: [{ expiresAt: null }, { expiresAt: { $gt: new Date() } }],
       },
       { orderBy: { detectedAt: 'DESC' } },

@@ -7,6 +7,7 @@ import { DEFAULT_MODELS } from '../../config/models';
 import { ProductsRepository } from '@hothotleads/db';
 import { SignalsRepository } from '@hothotleads/db';
 import { LeadsRepository } from '@hothotleads/db';
+import type { TenantContext } from '../../modules/auth/tenant-context';
 
 @Injectable()
 export class BuyingIntentAgent extends BaseAgent {
@@ -61,9 +62,10 @@ Always provide a clear, specific reasoning for the score. Reference specific sig
     return this.config.get<string>('anthropic.modelHeavy') ?? DEFAULT_MODELS.heavy;
   }
 
-  async analyzeForCompany(productName: string, company: string): Promise<string> {
+  async analyzeForCompany(ctx: TenantContext, productName: string, company: string): Promise<string> {
     return this.run(
       `Analyze buying intent for company "${company}" in the context of product "${productName}". Load their signals, evaluate co-occurrence and recency, compute a 0–100 buying intent score, and save it.`,
+      { ctx },
     );
   }
 
@@ -77,8 +79,9 @@ Always provide a clear, specific reasoning for the score. Reference specific sig
           company: z.string(),
           daysBack: z.number().optional(),
         },
-        handler: async (input) => {
+        handler: async (input, ctx) => {
           const signals = await this.signalsRepo.getSignals(
+            ctx.org.id,
             input.productName as string,
             (input.daysBack as number) ?? 30,
           );
@@ -92,20 +95,21 @@ Always provide a clear, specific reasoning for the score. Reference specific sig
         name: 'get_product_knowledge',
         description: 'Load ICP and buying profile for the product.',
         schema: { productName: z.string() },
-        handler: async (input) =>
-          this.productsRepo.getProductKnowledge(input.productName as string),
+        handler: async (input, ctx) =>
+          this.productsRepo.getProductKnowledge(ctx.org.id, input.productName as string),
       },
       {
         name: 'update_lead_buying_intent',
         description: 'Write buying intent score and reasoning to the lead.',
+        requires: { permission: 'leads:write' },
         schema: {
           productName: z.string(),
           company: z.string(),
           buyingIntent: z.number(),
           signalSummary: z.string(),
         },
-        handler: async (input) =>
-          this.leadsRepo.saveLead({
+        handler: async (input, ctx) =>
+          this.leadsRepo.saveLead(ctx.org.id, {
             productName: input.productName as string,
             company: input.company as string,
             buyingIntent: input.buyingIntent as number,

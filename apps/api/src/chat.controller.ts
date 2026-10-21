@@ -1,6 +1,9 @@
 import { Body, Controller, Logger, Post } from '@nestjs/common';
 
 import { OrchestratorAgent } from './agents/orchestrator/orchestrator.agent';
+import { Auth } from './modules/auth/auth.decorator';
+import { RequireFeature, RequirePermission } from './modules/auth/access.decorators';
+import { requireOrg, type TenantContext } from './modules/auth/tenant-context';
 
 export interface ChatRequest {
   text: string;
@@ -13,24 +16,27 @@ export interface ChatResponse {
 }
 
 @Controller('chat')
+@RequireFeature('chat')
+@RequirePermission('agents:run')
 export class ChatController {
   private readonly logger = new Logger(ChatController.name);
 
   constructor(private readonly orchestrator: OrchestratorAgent) {}
 
   @Post()
-  async chat(@Body() body: ChatRequest): Promise<ChatResponse> {
+  async chat(@Auth() auth: TenantContext, @Body() body: ChatRequest): Promise<ChatResponse> {
     if (!body?.text) {
       return { reply: 'Please send a non-empty "text" field.', elapsedMs: 0 };
     }
+    const ctx = requireOrg(auth);
 
     const started = Date.now();
     this.logger.log(`Chat: "${body.text.slice(0, 80)}"`);
 
-    const reply = await this.orchestrator.handleMessage({
+    const reply = await this.orchestrator.handleMessage(ctx, {
       channel: 'telegram', // placeholder — just used for context string
-      userId: body.userId ?? 'local-tester',
-      chatId: body.userId ?? 'local-tester',
+      userId: ctx.user.id,
+      chatId: 'web',
       text: body.text,
       timestamp: new Date(),
     });

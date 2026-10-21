@@ -9,19 +9,26 @@ interface Stat {
   tone?: 'accent' | 'default';
 }
 
-export function KpiStrip({ product }: { product: string | null }) {
+export function KpiStrip({
+  product,
+  features = { signals: true, outreach: true },
+}: {
+  product: string | null;
+  /** Disabled features are not queried, so the page never trips a 403 on load. */
+  features?: { signals: boolean; outreach: boolean };
+}) {
   const disabled = !product;
   const q = useQueries({
     queries: [
       { queryKey: ['leads', product], queryFn: () => api.leads(product!), enabled: !!product },
-      { queryKey: ['signals', product, 14], queryFn: () => api.signals(product!, 14), enabled: !!product },
-      { queryKey: ['outreach', product], queryFn: () => api.outreach(product!), enabled: !!product },
+      { queryKey: ['signals', product, 14], queryFn: () => api.signals(product!, 14), enabled: !!product && features.signals },
+      { queryKey: ['outreach', product], queryFn: () => api.outreach(product!), enabled: !!product && features.outreach },
       { queryKey: ['feedback', product], queryFn: () => api.feedback(product!), enabled: !!product },
     ],
   });
 
   const [leads, signals, outreach, feedback] = q;
-  const anyLoading = q.some((x) => x.isPending && !disabled);
+  const anyLoading = q.some((x) => x.isPending && x.fetchStatus !== 'idle' && !disabled);
 
   const totalLeads = leads.data?.length ?? 0;
   const hotLeads = (leads.data ?? []).filter((l) => (l.score ?? 0) >= 80).length;
@@ -53,13 +60,13 @@ export function KpiStrip({ product }: { product: string | null }) {
     },
     {
       label: 'Signals',
-      primary: placeholder ?? `${newSignals24h}`,
-      context: placeholder ? '' : `today · ${totalSignals} in 14d`,
+      primary: placeholder ?? (features.signals ? `${newSignals24h}` : '—'),
+      context: placeholder ? '' : features.signals ? `today · ${totalSignals} in 14d` : 'not enabled',
     },
     {
       label: 'Drafts',
-      primary: placeholder ?? `${totalOutreach}`,
-      context: placeholder ? '' : 'latest outreach drafts',
+      primary: placeholder ?? (features.outreach ? `${totalOutreach}` : '—'),
+      context: placeholder ? '' : features.outreach ? 'latest outreach drafts' : 'not enabled',
     },
     {
       label: 'Quality',

@@ -14,6 +14,7 @@ import { BuyingIntentAgent } from '../buying-intent/buying-intent.agent';
 import { ProductsRepository, SchedulesRepository } from '@hothotleads/db';
 import { ORCHESTRATOR_SYSTEM_PROMPT } from './orchestrator.prompts';
 import { IncomingMessage } from '../../common/types';
+import type { TenantContext } from '../../modules/auth/tenant-context';
 
 @Injectable()
 export class OrchestratorAgent extends BaseAgent {
@@ -36,9 +37,9 @@ export class OrchestratorAgent extends BaseAgent {
     super();
   }
 
-  async handleMessage(message: IncomingMessage): Promise<string> {
+  async handleMessage(ctx: TenantContext, message: IncomingMessage): Promise<string> {
     const context = `User channel: ${message.channel} | User ID: ${message.userId} | Chat ID: ${message.chatId}`;
-    return this.run(message.text, { extraContext: context });
+    return this.run(message.text, { ctx, extraContext: context });
   }
 
   protected buildTools(): AgentToolDef[] {
@@ -46,30 +47,32 @@ export class OrchestratorAgent extends BaseAgent {
     const tools: AgentToolDef[] = [
       {
         name: 'get_products',
-        description: 'List all available products.',
+        description: 'List all products available in this organization.',
         schema: {},
-        handler: async () => this.productsRepo.listProducts(),
+        requires: { permission: 'products:read' },
+        handler: async (_input, ctx) => this.productsRepo.listProducts(ctx.org.id),
       },
       {
         name: 'load_product_context',
         description: 'Load all knowledge for a specific product (ICP, strategy, channels, pricing, signals, sources).',
         schema: { productName: z.string() },
-        handler: async (input) =>
-          this.productContextAgent.run(
-            `Load full knowledge for product: ${input.productName}`,
-          ),
+        requires: { permission: 'products:read' },
+        handler: async (input, ctx) =>
+          this.productContextAgent.run(`Load full knowledge for product: ${input.productName}`, { ctx }),
       },
       {
         name: 'run_prospect_discovery',
         description: 'Discover new prospects matching the product ICP using web research.',
+        requires: { feature: 'discovery', permission: 'leads:write' },
         schema: {
           productName: z.string(),
           count: z.number().optional(),
           focus: z.string().optional(),
         },
-        handler: async (input) => {
+        handler: async (input, ctx) => {
           const task = `Find ${input.count ?? 10} prospects for product "${input.productName}"${input.focus ? `. Focus: ${input.focus}` : ''}.`;
           return this.prospectDiscoveryAgent.run(task, {
+            ctx,
             extraContext: `Product: ${input.productName}`,
           });
         },
@@ -77,14 +80,16 @@ export class OrchestratorAgent extends BaseAgent {
       {
         name: 'run_enrichment',
         description: 'Enrich and score a company using web research.',
+        requires: { feature: 'enrichment', permission: 'leads:write' },
         schema: {
           productName: z.string(),
           company: z.string(),
           domain: z.string().optional(),
         },
-        handler: async (input) => {
+        handler: async (input, ctx) => {
           const task = `Enrich and score company "${input.company}"${input.domain ? ` (${input.domain})` : ''} for product "${input.productName}".`;
           return this.enrichmentAgent.run(task, {
+            ctx,
             extraContext: `Product: ${input.productName}`,
           });
         },
@@ -92,6 +97,7 @@ export class OrchestratorAgent extends BaseAgent {
       {
         name: 'run_outreach',
         description: 'Draft personalized outreach for a scored lead.',
+        requires: { feature: 'outreach', permission: 'outreach:write' },
         schema: {
           productName: z.string(),
           company: z.string(),
@@ -99,9 +105,10 @@ export class OrchestratorAgent extends BaseAgent {
           contactTitle: z.string().optional(),
           channel: z.string().optional(),
         },
-        handler: async (input) => {
+        handler: async (input, ctx) => {
           const task = `Draft outreach for ${input.contactName ?? 'decision maker'} at ${input.company} via ${input.channel ?? 'email'} for product "${input.productName}".`;
           return this.outreachAgent.run(task, {
+            ctx,
             extraContext: `Product: ${input.productName}`,
           });
         },
@@ -109,42 +116,59 @@ export class OrchestratorAgent extends BaseAgent {
       {
         name: 'check_signals',
         description: 'Check for recent GTM signals for a product.',
+        requires: { feature: 'signals', permission: 'signals:write' },
         schema: {
           productName: z.string(),
           daysBack: z.number().optional(),
         },
-        handler: async (input) =>
+        handler: async (input, ctx) =>
           this.signalMonitorAgent.run(
             `Check signals for product "${input.productName}" from the last ${input.daysBack ?? 7} days.`,
+            { ctx },
           ),
       },
       {
         name: 'save_schedule',
-        description: 'Save a recurring task schedule.',
+        description: 'Save a recurring task schedule delivered to a Telegram or WhatsApp chat.',
+        requires: { feature: 'schedules', permission: 'schedules:write' },
         schema: {
           name: z.string(),
           taskPrompt: z.string(),
           productName: z.string().optional(),
           frequency: z.enum(['hourly', 'daily', 'weekly', 'custom']),
           cronExpression: z.string().optional(),
-          userId: z.string(),
           chatId: z.string(),
           channel: z.enum(['telegram', 'whatsapp']),
         },
-        handler: async (input) =>
-          this.schedulesRepo.saveSchedule(
-            input as unknown as Parameters<SchedulesRepository['saveSchedule']>[0],
-          ),
+        handler: async (input, ctx) => {
+          const channel = input.channel as 'telegram' | 'whatsapp';
+          if (!ctx.entitlements.channels.includes(channel)) {
+            throw new Error(`The ${channel} channel is not enabled for this organization`);
+          }
+          return this.schedulesRepo.saveSchedule(ctx.org.id, {
+            name: input.name as string,
+            taskPrompt: input.taskPrompt as string,
+            productName: input.productName as string | undefined,
+            frequency: input.frequency as string,
+            cronExpression: input.cronExpression as string | undefined,
+            chatId: input.chatId as string,
+            userId: input.chatId as string,
+            channel,
+            createdByUserId: ctx.user.id,
+          });
+        },
       },
       {
         name: 'run_buying_intent',
         description: 'Analyze buying intent for a company by evaluating co-occurring signals. Returns a 0–100 score.',
+        requires: { feature: 'buyingIntent', permission: 'leads:write' },
         schema: {
           productName: z.string(),
           company: z.string(),
         },
-        handler: async (input) =>
+        handler: async (input, ctx) =>
           this.buyingIntentAgent.analyzeForCompany(
+            ctx,
             input.productName as string,
             input.company as string,
           ),
@@ -152,14 +176,15 @@ export class OrchestratorAgent extends BaseAgent {
       {
         name: 'run_feedback',
         description: 'Run the feedback agent to evaluate output quality and write to the Feedback Log table.',
+        requires: { permission: 'feedback:write' },
         schema: {
           productName: z.string(),
           agentType: z.string(),
           inputSummary: z.string(),
           outputSummary: z.string(),
         },
-        handler: async (input) =>
-          this.feedbackAgent.evaluate({
+        handler: async (input, ctx) =>
+          this.feedbackAgent.evaluate(ctx, {
             productName: input.productName as string,
             agentType: input.agentType as string,
             inputSummary: input.inputSummary as string,

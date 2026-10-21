@@ -18,8 +18,11 @@ import {
   Signal,
   Schedule,
   FeedbackEntry,
-  Workspace,
-  Operator,
+  Organization,
+  User,
+  Membership,
+  Session,
+  AuthToken,
   ChannelCredential,
   ProductChat,
   ProductChatMessage,
@@ -28,9 +31,21 @@ import {
   SignalsRepository,
   SchedulesRepository,
   FeedbackRepository,
+  OrganizationsRepository,
+  UsersRepository,
+  MembershipsRepository,
+  SessionsRepository,
+  AuthTokensRepository,
+  ChannelCredentialsRepository,
+  ProductChatsRepository,
 } from '@hothotleads/db';
 
 const ENTITIES = [
+  Organization,
+  User,
+  Membership,
+  Session,
+  AuthToken,
   Product,
   ProductIcp,
   ProductSalesChannel,
@@ -41,11 +56,25 @@ const ENTITIES = [
   Signal,
   Schedule,
   FeedbackEntry,
-  Workspace,
-  Operator,
   ChannelCredential,
   ProductChat,
   ProductChatMessage,
+];
+
+// Every repository is a plain class over the EntityManager; provide them all here once.
+const REPOSITORIES = [
+  ProductsRepository,
+  LeadsRepository,
+  SignalsRepository,
+  SchedulesRepository,
+  FeedbackRepository,
+  OrganizationsRepository,
+  UsersRepository,
+  MembershipsRepository,
+  SessionsRepository,
+  AuthTokensRepository,
+  ChannelCredentialsRepository,
+  ProductChatsRepository,
 ];
 
 @Module({
@@ -84,39 +113,12 @@ const ENTITIES = [
   ],
   providers: [
     MigrationsRunner,
-    {
-      provide: ProductsRepository,
-      useFactory: (em: EntityManager) => new ProductsRepository(em),
+    ...REPOSITORIES.map((Repo) => ({
+      provide: Repo,
+      useFactory: (em: EntityManager) => new Repo(em),
       inject: [EntityManager],
-    },
-    {
-      provide: LeadsRepository,
-      useFactory: (em: EntityManager) => new LeadsRepository(em),
-      inject: [EntityManager],
-    },
-    {
-      provide: SignalsRepository,
-      useFactory: (em: EntityManager) => new SignalsRepository(em),
-      inject: [EntityManager],
-    },
-    {
-      provide: SchedulesRepository,
-      useFactory: (em: EntityManager) => new SchedulesRepository(em),
-      inject: [EntityManager],
-    },
-    {
-      provide: FeedbackRepository,
-      useFactory: (em: EntityManager) => new FeedbackRepository(em),
-      inject: [EntityManager],
-    },
+    })),
   ],
-  exports: [
-    MikroOrmModule,
-    ProductsRepository,
-    LeadsRepository,
-    SignalsRepository,
-    SchedulesRepository,
-    FeedbackRepository,
-  ],
+  exports: [MikroOrmModule, ...REPOSITORIES],
 })
 export class DbModule {}

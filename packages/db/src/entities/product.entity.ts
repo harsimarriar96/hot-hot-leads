@@ -2,6 +2,8 @@ import {
   Collection,
   Entity,
   Enum,
+  Index,
+  ManyToOne,
   OneToMany,
   OneToOne,
   PrimaryKey,
@@ -11,6 +13,7 @@ import {
 import { randomUUID } from 'node:crypto';
 
 import { AgentModelTier } from '../enums';
+import { Organization } from './organization.entity';
 import { ProductIcp } from './product-icp.entity';
 import { ProductSalesChannel } from './product-sales-channel.entity';
 import { ProductSource } from './product-source.entity';
@@ -21,16 +24,22 @@ import { Schedule } from './schedule.entity';
 import { FeedbackEntry } from './feedback-entry.entity';
 
 @Entity({ tableName: 'products' })
+@Unique({ name: 'products_organization_name_unique', properties: ['organization', 'name'] })
+@Unique({ name: 'products_organization_slug_unique', properties: ['organization', 'slug'] })
+@Index({ properties: ['organization'] })
 export class Product {
   @PrimaryKey({ type: 'uuid', defaultRaw: 'gen_random_uuid()' })
   id: string = randomUUID();
 
+  @ManyToOne(() => Organization, { fieldName: 'organization_id', deleteRule: 'cascade' })
+  organization!: Organization;
+
+  /** Unique per organization. */
   @Property({ type: 'text' })
-  @Unique()
   name!: string;
 
+  /** Unique per organization. */
   @Property({ type: 'text' })
-  @Unique()
   slug!: string;
 
   @Property({ type: 'text', nullable: true })

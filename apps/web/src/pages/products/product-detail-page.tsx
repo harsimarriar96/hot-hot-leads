@@ -13,6 +13,8 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/use-auth';
+import { Can, FeatureUnavailable, featureReason } from '@/components/gate';
 import { productsApi, type ProductSummary } from '@/lib/products';
 import { ProductOverviewTab } from './tabs/overview-tab';
 import { ProductLeadsTab } from './tabs/leads-tab';
@@ -37,6 +39,8 @@ export function ProductDetailPage() {
   const toast = useToast();
   const [tab, setTab] = useState<Tab>(productId ? readStoredTab(productId) : 'overview');
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const { can, hasFeature, activeOrg } = useAuth();
+  const chatEnabled = hasFeature('chat');
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ['product', productId],
@@ -155,39 +159,59 @@ export function ProductDetailPage() {
             </p>
           )}
         </div>
-        <TooltipHint label="Delete product · cascades to leads, signals, chat" side="left">
-          <Button variant="ghost" size="sm" onClick={() => setConfirmDelete(true)}>
-            Delete
-          </Button>
-        </TooltipHint>
+        <Can perm="products:delete">
+          <TooltipHint label="Delete product · cascades to leads, signals, chat" side="left">
+            <Button variant="ghost" size="sm" onClick={() => setConfirmDelete(true)}>
+              Delete
+            </Button>
+          </TooltipHint>
+        </Can>
       </header>
 
       <nav className="flex gap-1 border-b border-[var(--border)] mb-5">
-        {(['overview', 'leads', 'chat'] as const).map((t) => (
-          <button
-            key={t}
-            type="button"
-            onClick={() => switchTab(t)}
-            className={`px-3 py-2 text-sm capitalize -mb-px border-b-2 transition-colors ${
-              tab === t
-                ? 'border-[var(--accent)] text-[var(--text)] font-medium'
-                : 'border-transparent text-[var(--text-tertiary)] hover:text-[var(--text)]'
-            }`}
-          >
-            {t}
-          </button>
-        ))}
+        {(['overview', 'leads', 'chat'] as const).map((t) => {
+          const button = (
+            <button
+              key={t}
+              type="button"
+              onClick={() => switchTab(t)}
+              disabled={t === 'chat' && !chatEnabled}
+              className={`px-3 py-2 text-sm capitalize -mb-px border-b-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+                tab === t
+                  ? 'border-[var(--accent)] text-[var(--text)] font-medium'
+                  : 'border-transparent text-[var(--text-tertiary)] hover:text-[var(--text)]'
+              }`}
+            >
+              {t}
+            </button>
+          );
+          return t === 'chat' && !chatEnabled ? (
+            <TooltipHint key={t} label={featureReason('chat', activeOrg?.name)}>
+              <span className="inline-flex" tabIndex={0}>
+                {button}
+              </span>
+            </TooltipHint>
+          ) : (
+            button
+          );
+        })}
       </nav>
 
       <div className="flex-1 min-h-0">
         {tab === 'overview' && (
           <ProductOverviewTab
             product={data}
+            readOnly={!can('products:write')}
             onChanged={() => qc.invalidateQueries({ queryKey: ['product', productId] })}
           />
         )}
         {tab === 'leads' && <ProductLeadsTab productName={data.name} product={data} />}
-        {tab === 'chat' && <ProductChatTab productId={data.id} productName={data.name} />}
+        {tab === 'chat' &&
+          (chatEnabled ? (
+            <ProductChatTab productId={data.id} productName={data.name} />
+          ) : (
+            <FeatureUnavailable feature="chat" />
+          ))}
       </div>
 
       <DeleteProductDialog

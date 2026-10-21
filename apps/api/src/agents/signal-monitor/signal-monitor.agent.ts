@@ -7,6 +7,7 @@ import { TavilyService } from '../../integrations/tavily/tavily.service';
 import { PerplexityService } from '../../integrations/perplexity/perplexity.service';
 import { ProductsRepository } from '@hothotleads/db';
 import { SignalsRepository } from '@hothotleads/db';
+import type { TenantContext } from '../../modules/auth/tenant-context';
 
 @Injectable()
 export class SignalMonitorAgent extends BaseAgent {
@@ -52,9 +53,10 @@ Always set signal source correctly: tavily, exa, or perplexity.`;
     super();
   }
 
-  async runForProduct(productName: string, daysBack = 7): Promise<string> {
+  async runForProduct(ctx: TenantContext, productName: string, daysBack = 7): Promise<string> {
     return this.run(
       `Monitor and save new GTM signals for product "${productName}" from the last ${daysBack} days. Search all five signal categories using the appropriate tools.`,
+      { ctx },
     );
   }
 
@@ -64,8 +66,8 @@ Always set signal source correctly: tavily, exa, or perplexity.`;
         name: 'get_product_sources',
         description: 'Get the Sources list and signal monitoring topics for a product.',
         schema: { productName: z.string() },
-        handler: async (input) =>
-          this.productsRepo.getProductSources(input.productName as string),
+        handler: async (input, ctx) =>
+          this.productsRepo.getProductSources(ctx.org.id, input.productName as string),
       },
       {
         name: 'get_existing_signals',
@@ -74,8 +76,9 @@ Always set signal source correctly: tavily, exa, or perplexity.`;
           productName: z.string(),
           daysBack: z.number().optional(),
         },
-        handler: async (input) =>
+        handler: async (input, ctx) =>
           this.signalsRepo.getSignals(
+            ctx.org.id,
             input.productName as string,
             (input.daysBack as number) ?? 14,
           ),
@@ -159,6 +162,7 @@ Always set signal source correctly: tavily, exa, or perplexity.`;
       {
         name: 'save_signal',
         description: 'Save a detected GTM signal to the signals database.',
+        requires: { permission: 'signals:write' },
         schema: {
           productName: z.string(),
           type: z.enum([
@@ -171,9 +175,10 @@ Always set signal source correctly: tavily, exa, or perplexity.`;
           sourceUrl: z.string().optional(),
           relevanceScore: z.number().optional(),
         },
-        handler: async (input) =>
+        handler: async (input, ctx) =>
           this.signalsRepo.saveSignal(
-            input as unknown as Parameters<SignalsRepository['saveSignal']>[0],
+            ctx.org.id,
+            input as unknown as Parameters<SignalsRepository['saveSignal']>[1],
           ),
       },
     ];

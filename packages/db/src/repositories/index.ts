@@ -1,5 +1,7 @@
 export {
   ProductsRepository,
+  requireProduct,
+  slugify,
   type UpsertProductInput,
   type ProductSummary,
   type ProductKnowledgeView,
@@ -17,8 +19,20 @@ export {
 export { SignalsRepository, type SaveSignalInput } from './signals.repository';
 export { SchedulesRepository, type SaveScheduleInput } from './schedules.repository';
 export { FeedbackRepository, type SaveFeedbackInput } from './feedback.repository';
-export { WorkspaceRepository, type UpsertWorkspaceInput } from './workspace.repository';
-export { OperatorRepository, type UpsertOperatorInput } from './operator.repository';
+export {
+  OrganizationsRepository,
+  type CreateOrganizationInput,
+  type UpdateOrganizationInput,
+} from './organizations.repository';
+export {
+  UsersRepository,
+  normalizeEmail,
+  type CreateUserInput,
+  type UpdateUserProfileInput,
+} from './users.repository';
+export { MembershipsRepository } from './memberships.repository';
+export { SessionsRepository, type CreateSessionInput } from './sessions.repository';
+export { AuthTokensRepository, type CreateAuthTokenInput } from './auth-tokens.repository';
 export {
   ChannelCredentialsRepository,
   type StoredCredentialBlob,

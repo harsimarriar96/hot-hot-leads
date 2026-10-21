@@ -187,3 +187,36 @@ export interface Schedule {
   nextRun?: string;
   createdAt: string;
 }
+
+// Explicit re-exports: the bundler must see the runtime values (ROLES, DEFAULT_ENTITLEMENTS, ...)
+// as named CommonJS exports, which `export *` hides behind __exportStar.
+export {
+  ROLES,
+  ROLE_PERMISSIONS,
+  hasPermission,
+  FEATURE_KEYS,
+  CHANNEL_KEYS,
+  DEFAULT_ENTITLEMENTS,
+  resolveEntitlements,
+} from './auth';
+export type {
+  Role,
+  Permission,
+  FeatureKey,
+  ChannelKey,
+  EntitlementLimits,
+  Entitlements,
+  EntitlementsPatch,
+  AuthUser,
+  OrganizationSummary,
+  ActiveOrganization,
+  AuthMeResponse,
+  LoginResponse,
+  DenialCode,
+  DenialBody,
+  Member,
+  Invitation,
+  OrganizationView,
+  PlatformOrganization,
+  PlatformUser,
+} from './auth';

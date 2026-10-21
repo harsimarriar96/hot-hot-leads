@@ -11,6 +11,7 @@ import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { productsApi, type ProductSummary } from '@/lib/products';
 import { useTheme } from './use-theme';
+import { useNavItems } from './use-nav-items';
 import {
   Dialog,
   DialogContent,
@@ -38,17 +39,23 @@ export function CommandPaletteProvider({ children }: { children: React.ReactNode
   const navigate = useNavigate();
   const qc = useQueryClient();
   const { toggle: toggleTheme } = useTheme();
+  const navItems = useNavItems();
+  const allowedPaths = navItems.map((n) => n.to).join(',');
 
   // Global keyboard listener: Cmd+K opens palette; `?` opens cheatsheet; G-leader navigations.
   useEffect(() => {
     let gLeaderUntil = 0;
-    const GO = {
+    const ALL_GO = {
       p: '/products',
       c: '/chat',
       d: '/dashboard',
       s: '/settings',
       r: '/schedules',
     } as const;
+    const allowed = new Set(allowedPaths.split(','));
+    const GO = Object.fromEntries(Object.entries(ALL_GO).filter(([, path]) => allowed.has(path))) as Partial<
+      typeof ALL_GO
+    >;
 
     const onKey = (e: KeyboardEvent) => {
       const isInput =
@@ -79,15 +86,16 @@ export function CommandPaletteProvider({ children }: { children: React.ReactNode
         return;
       }
 
-      if (now < gLeaderUntil && key in GO) {
+      const target = GO[key as keyof typeof ALL_GO];
+      if (now < gLeaderUntil && target) {
         e.preventDefault();
         gLeaderUntil = 0;
-        navigate(GO[key as keyof typeof GO]);
+        navigate(target);
       }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [navigate]);
+  }, [navigate, allowedPaths]);
 
   const openCheatsheet = useCallback(() => setCheatsheetOpen(true), []);
 
@@ -139,21 +147,16 @@ export function CommandPaletteProvider({ children }: { children: React.ReactNode
                 heading="Jump to"
                 className="text-[10px] uppercase tracking-wider text-[var(--text-tertiary)] px-2 pt-2 pb-1"
               >
-                <Item shortcut="G P" onSelect={() => runCommand(() => navigate('/products'))}>
-                  Products
-                </Item>
-                <Item shortcut="G C" onSelect={() => runCommand(() => navigate('/chat'))}>
-                  Chat
-                </Item>
-                <Item shortcut="G D" onSelect={() => runCommand(() => navigate('/dashboard'))}>
-                  Dashboard
-                </Item>
-                <Item shortcut="G R" onSelect={() => runCommand(() => navigate('/schedules'))}>
-                  Schedules · coming soon
-                </Item>
-                <Item shortcut="G S" onSelect={() => runCommand(() => navigate('/settings'))}>
-                  Settings
-                </Item>
+                {navItems.map((n) => (
+                  <Item
+                    key={n.to}
+                    shortcut={`G ${(SHORTCUTS[n.to] ?? '').toUpperCase()}`}
+                    onSelect={() => runCommand(() => navigate(n.to))}
+                  >
+                    {n.label}
+                    {n.soon ? ' · coming soon' : ''}
+                  </Item>
+                ))}
               </Command.Group>
 
               {products.length > 0 && (
@@ -211,6 +214,14 @@ export function CommandPaletteProvider({ children }: { children: React.ReactNode
     </Ctx.Provider>
   );
 }
+
+const SHORTCUTS: Record<string, string> = {
+  '/products': 'p',
+  '/chat': 'c',
+  '/dashboard': 'd',
+  '/schedules': 'r',
+  '/settings': 's',
+};
 
 function Item({
   children,

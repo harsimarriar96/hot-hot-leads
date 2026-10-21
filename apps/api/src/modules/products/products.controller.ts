@@ -32,15 +32,21 @@ import { Type } from 'class-transformer';
 import {
   AgentModelTier,
   Lead,
+  Organization,
   PredefinedProspect,
   Product,
   ProductIcp,
   ProductSalesChannel,
   ProductSource,
-  ProductsRepository,
   Signal,
   SourceType,
+  slugify,
 } from '@hothotleads/db';
+
+import { Auth } from '../auth/auth.decorator';
+import { RequirePermission } from '../auth/access.decorators';
+import { EntitlementsService } from '../auth/entitlements.service';
+import { requireOrg, type TenantContext } from '../auth/tenant-context';
 
 class IcpDto {
   @IsArray()
@@ -213,13 +219,15 @@ class ProspectDto {
 export class ProductsController {
   constructor(
     private readonly em: EntityManager,
-    private readonly productsRepo: ProductsRepository,
+    private readonly entitlements: EntitlementsService,
   ) {}
 
   @Get()
-  async list() {
+  @RequirePermission('products:read')
+  async list(@Auth() auth: TenantContext) {
+    const { org } = requireOrg(auth);
     const em = this.em.fork();
-    const products = await em.find(Product, {}, { populate: ['icp'] });
+    const products = await em.find(Product, { organization: org.id }, { populate: ['icp'], orderBy: { name: 'ASC' } });
 
     const summaries = await Promise.all(
       products.map(async (p) => {
@@ -248,15 +256,16 @@ export class ProductsController {
   }
 
   @Get(':id')
-  async get(@Param('id') id: string) {
-    const product = await this.productsRepo.findById(id);
-    if (!product) throw new NotFoundException('Product not found');
+  @RequirePermission('products:read')
+  async get(@Auth() auth: TenantContext, @Param('id') id: string) {
+    const { org } = requireOrg(auth);
     const em = this.em.fork();
-    const withRelations = await em.findOneOrFail(
+    const withRelations = await em.findOne(
       Product,
-      { id },
+      { id, organization: org.id },
       { populate: ['icp', 'salesChannels', 'sources', 'predefinedProspects'] },
     );
+    if (!withRelations) throw new NotFoundException('Product not found');
     return {
       id: withRelations.id,
       name: withRelations.name,
@@ -302,15 +311,24 @@ export class ProductsController {
   }
 
   @Post()
-  async create(@Body() dto: CreateProductDto) {
+  @RequirePermission('products:write')
+  async create(@Auth() auth: TenantContext, @Body() dto: CreateProductDto) {
+    const ctx = requireOrg(auth);
+    const { org } = ctx;
+    await this.entitlements.assertCanCreateProduct(ctx);
     const em = this.em.fork();
-    const existing = await em.findOne(Product, { name: dto.name });
+    const existing = await em.findOne(Product, { organization: org.id, name: dto.name });
     if (existing) throw new ConflictException(`Product "${dto.name}" already exists`);
 
     const product = await em.transactional(async (tx) => {
       const p = tx.create(
         Product,
-        { name: dto.name, slug: slugify(dto.name), generalInfo: dto.generalInfo },
+        {
+          organization: tx.getReference(Organization, org.id),
+          name: dto.name,
+          slug: slugify(dto.name),
+          generalInfo: dto.generalInfo,
+        },
         { partial: true },
       );
       tx.create(
@@ -331,12 +349,14 @@ export class ProductsController {
   }
 
   @Patch(':id')
-  async update(@Param('id') id: string, @Body() dto: UpdateProductDto) {
+  @RequirePermission('products:write')
+  async update(@Auth() auth: TenantContext, @Param('id') id: string, @Body() dto: UpdateProductDto) {
     const em = this.em.fork();
-    const product = await em.findOneOrFail(Product, { id });
+    const product = await this.requireProduct(em, auth, id);
     if (dto.name !== undefined && dto.name !== product.name) {
       const newSlug = slugify(dto.name);
       const conflict = await em.findOne(Product, {
+        organization: product.organization,
         id: { $ne: id },
         $or: [{ name: dto.name }, { slug: newSlug }],
       });
@@ -362,10 +382,12 @@ export class ProductsController {
   }
 
   @Delete(':id')
+  @RequirePermission('products:delete')
   @HttpCode(204)
-  async delete(@Param('id') id: string): Promise<void> {
+  async delete(@Auth() auth: TenantContext, @Param('id') id: string): Promise<void> {
+    const { org } = requireOrg(auth);
     const em = this.em.fork();
-    const product = await em.findOne(Product, { id });
+    const product = await em.findOne(Product, { id, organization: org.id });
     if (!product) return;
     em.remove(product);
     await em.flush();
@@ -374,9 +396,10 @@ export class ProductsController {
   // ----- ICP -----
 
   @Put(':id/icp')
-  async putIcp(@Param('id') id: string, @Body() dto: PutIcpDto) {
+  @RequirePermission('products:write')
+  async putIcp(@Auth() auth: TenantContext, @Param('id') id: string, @Body() dto: PutIcpDto) {
     const em = this.em.fork();
-    const product = await em.findOneOrFail(Product, { id });
+    const product = await this.requireProduct(em, auth, id);
     let icp = await em.findOne(ProductIcp, { product });
     if (!icp) {
       icp = em.create(
@@ -400,9 +423,10 @@ export class ProductsController {
   // ----- Sales channels -----
 
   @Post(':id/sales-channels')
-  async addSalesChannel(@Param('id') id: string, @Body() dto: SalesChannelDto) {
+  @RequirePermission('products:write')
+  async addSalesChannel(@Auth() auth: TenantContext, @Param('id') id: string, @Body() dto: SalesChannelDto) {
     const em = this.em.fork();
-    const product = await em.findOneOrFail(Product, { id });
+    const product = await this.requireProduct(em, auth, id);
     const channel = em.create(
       ProductSalesChannel,
       { product, name: dto.name, description: dto.description, template: dto.template },
@@ -413,13 +437,16 @@ export class ProductsController {
   }
 
   @Patch(':id/sales-channels/:childId')
+  @RequirePermission('products:write')
   async updateSalesChannel(
+    @Auth() auth: TenantContext,
     @Param('id') id: string,
     @Param('childId') childId: string,
     @Body() dto: SalesChannelDto,
   ) {
     const em = this.em.fork();
-    const channel = await em.findOneOrFail(ProductSalesChannel, { id: childId, product: id });
+    const product = await this.requireProduct(em, auth, id);
+    const channel = await em.findOneOrFail(ProductSalesChannel, { id: childId, product });
     if (dto.name !== undefined) channel.name = dto.name;
     if (dto.description !== undefined) channel.description = dto.description;
     if (dto.template !== undefined) channel.template = dto.template;
@@ -428,13 +455,16 @@ export class ProductsController {
   }
 
   @Delete(':id/sales-channels/:childId')
+  @RequirePermission('products:write')
   @HttpCode(204)
   async deleteSalesChannel(
+    @Auth() auth: TenantContext,
     @Param('id') id: string,
     @Param('childId') childId: string,
   ): Promise<void> {
     const em = this.em.fork();
-    const channel = await em.findOne(ProductSalesChannel, { id: childId, product: id });
+    const product = await this.requireProduct(em, auth, id);
+    const channel = await em.findOne(ProductSalesChannel, { id: childId, product });
     if (!channel) return;
     em.remove(channel);
     await em.flush();
@@ -443,9 +473,10 @@ export class ProductsController {
   // ----- Sources -----
 
   @Post(':id/sources')
-  async addSource(@Param('id') id: string, @Body() dto: SourceDto) {
+  @RequirePermission('products:write')
+  async addSource(@Auth() auth: TenantContext, @Param('id') id: string, @Body() dto: SourceDto) {
     const em = this.em.fork();
-    const product = await em.findOneOrFail(Product, { id });
+    const product = await this.requireProduct(em, auth, id);
     const source = em.create(
       ProductSource,
       {
@@ -462,13 +493,16 @@ export class ProductsController {
   }
 
   @Patch(':id/sources/:childId')
+  @RequirePermission('products:write')
   async updateSource(
+    @Auth() auth: TenantContext,
     @Param('id') id: string,
     @Param('childId') childId: string,
     @Body() dto: SourceDto,
   ) {
     const em = this.em.fork();
-    const source = await em.findOneOrFail(ProductSource, { id: childId, product: id });
+    const product = await this.requireProduct(em, auth, id);
+    const source = await em.findOneOrFail(ProductSource, { id: childId, product });
     if (dto.name !== undefined) source.name = dto.name;
     if (dto.url !== undefined) source.url = dto.url;
     if (dto.description !== undefined) source.description = dto.description;
@@ -478,10 +512,16 @@ export class ProductsController {
   }
 
   @Delete(':id/sources/:childId')
+  @RequirePermission('products:write')
   @HttpCode(204)
-  async deleteSource(@Param('id') id: string, @Param('childId') childId: string): Promise<void> {
+  async deleteSource(
+    @Auth() auth: TenantContext,
+    @Param('id') id: string,
+    @Param('childId') childId: string,
+  ): Promise<void> {
     const em = this.em.fork();
-    const source = await em.findOne(ProductSource, { id: childId, product: id });
+    const product = await this.requireProduct(em, auth, id);
+    const source = await em.findOne(ProductSource, { id: childId, product });
     if (!source) return;
     em.remove(source);
     await em.flush();
@@ -490,9 +530,10 @@ export class ProductsController {
   // ----- Predefined prospects -----
 
   @Post(':id/predefined-prospects')
-  async addProspect(@Param('id') id: string, @Body() dto: ProspectDto) {
+  @RequirePermission('products:write')
+  async addProspect(@Auth() auth: TenantContext, @Param('id') id: string, @Body() dto: ProspectDto) {
     const em = this.em.fork();
-    const product = await em.findOneOrFail(Product, { id });
+    const product = await this.requireProduct(em, auth, id);
     const prospect = em.create(
       PredefinedProspect,
       { product, ...dto },
@@ -503,13 +544,16 @@ export class ProductsController {
   }
 
   @Patch(':id/predefined-prospects/:childId')
+  @RequirePermission('products:write')
   async updateProspect(
+    @Auth() auth: TenantContext,
     @Param('id') id: string,
     @Param('childId') childId: string,
     @Body() dto: ProspectDto,
   ) {
     const em = this.em.fork();
-    const prospect = await em.findOneOrFail(PredefinedProspect, { id: childId, product: id });
+    const product = await this.requireProduct(em, auth, id);
+    const prospect = await em.findOneOrFail(PredefinedProspect, { id: childId, product });
     if (dto.company !== undefined) prospect.company = dto.company;
     if (dto.domain !== undefined) prospect.domain = dto.domain;
     if (dto.industry !== undefined) prospect.industry = dto.industry;
@@ -521,13 +565,27 @@ export class ProductsController {
   }
 
   @Delete(':id/predefined-prospects/:childId')
+  @RequirePermission('products:write')
   @HttpCode(204)
-  async deleteProspect(@Param('id') id: string, @Param('childId') childId: string): Promise<void> {
+  async deleteProspect(
+    @Auth() auth: TenantContext,
+    @Param('id') id: string,
+    @Param('childId') childId: string,
+  ): Promise<void> {
     const em = this.em.fork();
-    const prospect = await em.findOne(PredefinedProspect, { id: childId, product: id });
+    const product = await this.requireProduct(em, auth, id);
+    const prospect = await em.findOne(PredefinedProspect, { id: childId, product });
     if (!prospect) return;
     em.remove(prospect);
     await em.flush();
+  }
+
+  /** The product must belong to the caller's organization; anything else is a 404. */
+  private async requireProduct(em: EntityManager, auth: TenantContext, id: string): Promise<Product> {
+    const { org } = requireOrg(auth);
+    const product = await em.findOne(Product, { id, organization: org.id });
+    if (!product) throw new NotFoundException('Product not found');
+    return product;
   }
 
   private async lastChatActivityAt(productId: string, em: EntityManager): Promise<Date | null> {
@@ -542,14 +600,6 @@ export class ProductsController {
     const first = (result as Array<{ last: Date | null }>)[0];
     return first?.last ? new Date(first.last) : null;
   }
-}
-
-function slugify(name: string): string {
-  return name
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '');
 }
 
 function assignIcp(icp: ProductIcp, dto: PutIcpDto): void {

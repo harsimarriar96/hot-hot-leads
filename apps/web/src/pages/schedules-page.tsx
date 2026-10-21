@@ -1,5 +1,7 @@
 import { Clock } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { useAuth } from '@/hooks/use-auth';
+import { FeatureUnavailable } from '@/components/gate';
 
 /**
  * Schedules are intentionally gated: the scheduler is single-instance,
@@ -7,6 +9,8 @@ import { Badge } from '@/components/ui/badge';
  * The API module is disabled unless SCHEDULES_ENABLED=true.
  */
 export function SchedulesPage() {
+  const { hasFeature } = useAuth();
+  if (!hasFeature('schedules')) return <FeatureUnavailable feature="schedules" />;
   return (
     <div className="mx-auto max-w-5xl px-6 py-8">
       <header className="flex items-baseline gap-3 mb-5">

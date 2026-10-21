@@ -3,6 +3,7 @@ import { EntityManager } from '@mikro-orm/postgresql';
 import { FeedbackEntry } from '../entities/feedback-entry.entity';
 import { Product } from '../entities/product.entity';
 import { AgentType } from '../enums';
+import { requireProduct } from './products.repository';
 
 export interface SaveFeedbackInput {
   productName: string;
@@ -18,9 +19,9 @@ export interface SaveFeedbackInput {
 export class FeedbackRepository {
   constructor(private readonly em: EntityManager) {}
 
-  async saveFeedback(input: SaveFeedbackInput): Promise<{ id: string }> {
+  async saveFeedback(orgId: string, input: SaveFeedbackInput): Promise<{ id: string }> {
     const em = this.em.fork();
-    const product = await em.findOneOrFail(Product, { name: input.productName });
+    const product = await requireProduct(em, orgId, input.productName);
 
     const entry = em.create(
       FeedbackEntry,
@@ -42,12 +43,13 @@ export class FeedbackRepository {
   }
 
   async getRecentFeedback(
+    orgId: string,
     productName: string,
     agentType?: string,
     limit = 10,
   ): Promise<FeedbackEntry[]> {
     const em = this.em.fork();
-    const product = await em.findOne(Product, { name: productName });
+    const product = await em.findOne(Product, { organization: orgId, name: productName });
     if (!product) return [];
 
     const where: Record<string, unknown> = { product };

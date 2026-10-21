@@ -64,7 +64,7 @@ export type ChatContentBlock =
       is_error?: boolean;
     };
 
-import { apiFetch, apiJson, deleteJson } from './http';
+import { apiFetch, apiJson, deleteJson, errorFromResponse, parseBody } from './http';
 
 const jsonOrThrow = apiJson;
 
@@ -147,7 +147,7 @@ export const productsApi = {
 };
 
 export const adminApi = {
-  /** Seed a rich demo scenario. Operator-only; covered by the signed-in session. */
+  /** Seed a rich demo scenario into the active organization. */
   demoSeed: () =>
     apiJson<{ productId: string; counts: Record<string, number> }>('/api/admin/demo-seed', {
       method: 'POST',
@@ -176,9 +176,8 @@ export const productChatApi = {
       signal: controller.signal,
     })
       .then(async (res) => {
-        if (!res.ok || !res.body) {
-          throw new Error(`${res.status} ${res.statusText}`);
-        }
+        if (!res.ok) throw errorFromResponse(res, await parseBody(res));
+        if (!res.body) throw new Error('Empty response body');
         const reader = res.body.getReader();
         const decoder = new TextDecoder();
         let buffer = '';

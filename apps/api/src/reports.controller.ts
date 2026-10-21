@@ -5,23 +5,31 @@ import {
   LeadsRepository,
   OutreachDraft,
   Product,
-  ProductsRepository,
   SignalsRepository,
 } from '@hothotleads/db';
+
+import { Auth } from './modules/auth/auth.decorator';
+import { RequirePermission } from './modules/auth/access.decorators';
+import { requireOrg, type TenantContext } from './modules/auth/tenant-context';
 
 @Controller()
 export class ReportsController {
   constructor(
-    private readonly productsRepo: ProductsRepository,
     private readonly leadsRepo: LeadsRepository,
     private readonly signalsRepo: SignalsRepository,
     private readonly em: EntityManager,
   ) {}
 
   @Get('leads')
-  async leads(@Query('product') product: string, @Query('minScore') minScore?: string) {
+  @RequirePermission('leads:read')
+  async leads(
+    @Auth() auth: TenantContext,
+    @Query('product') product: string,
+    @Query('minScore') minScore?: string,
+  ) {
     if (!product) return { error: 'product query param required' };
-    return this.leadsRepo.queryLeads({
+    const { org } = requireOrg(auth);
+    return this.leadsRepo.queryLeads(org.id, {
       productName: product,
       minScore: minScore ? Number(minScore) : undefined,
       limit: 50,
@@ -29,16 +37,20 @@ export class ReportsController {
   }
 
   @Get('signals')
-  async signals(@Query('product') product: string, @Query('days') days?: string) {
+  @RequirePermission('signals:read')
+  async signals(@Auth() auth: TenantContext, @Query('product') product: string, @Query('days') days?: string) {
     if (!product) return { error: 'product query param required' };
-    return this.signalsRepo.getSignals(product, days ? Number(days) : 14);
+    const { org } = requireOrg(auth);
+    return this.signalsRepo.getSignals(org.id, product, days ? Number(days) : 14);
   }
 
   @Get('outreach')
-  async outreach(@Query('product') product: string) {
+  @RequirePermission('outreach:read')
+  async outreach(@Auth() auth: TenantContext, @Query('product') product: string) {
     if (!product) return { error: 'product query param required' };
+    const { org } = requireOrg(auth);
     const em = this.em.fork();
-    const productRow = await em.findOne(Product, { name: product });
+    const productRow = await em.findOne(Product, { organization: org.id, name: product });
     if (!productRow) return [];
     const drafts = await em.find(
       OutreachDraft,
@@ -59,10 +71,16 @@ export class ReportsController {
   }
 
   @Get('feedback/trend')
-  async feedbackTrend(@Query('product') product: string, @Query('weeks') weeks?: string) {
+  @RequirePermission('feedback:read')
+  async feedbackTrend(
+    @Auth() auth: TenantContext,
+    @Query('product') product: string,
+    @Query('weeks') weeks?: string,
+  ) {
     if (!product) return { error: 'product query param required' };
+    const { org } = requireOrg(auth);
     const em = this.em.fork();
-    const productRow = await em.findOne(Product, { name: product });
+    const productRow = await em.findOne(Product, { organization: org.id, name: product });
     if (!productRow) return [];
     const weekCount = Math.max(2, Math.min(52, Number(weeks ?? 8)));
     const cutoff = new Date(Date.now() - weekCount * 7 * 24 * 60 * 60 * 1000);
@@ -89,10 +107,12 @@ export class ReportsController {
   }
 
   @Get('feedback')
-  async feedback(@Query('product') product: string) {
+  @RequirePermission('feedback:read')
+  async feedback(@Auth() auth: TenantContext, @Query('product') product: string) {
     if (!product) return { error: 'product query param required' };
+    const { org } = requireOrg(auth);
     const em = this.em.fork();
-    const productRow = await em.findOne(Product, { name: product });
+    const productRow = await em.findOne(Product, { organization: org.id, name: product });
     if (!productRow) return [];
     const entries = await em.find(
       FeedbackEntry,

@@ -9,6 +9,9 @@ import { OutreachTable } from '@/components/dashboard/outreach-table';
 import { FeedbackTable } from '@/components/dashboard/feedback-table';
 import { FeedbackSparkline } from '@/components/dashboard/feedback-sparkline';
 import { useCurrentProduct } from '@/hooks/use-product';
+import { useAuth } from '@/hooks/use-auth';
+import { featureReason } from '@/components/gate';
+import { TooltipHint } from '@/components/ui/tooltip-hint';
 
 const TABS = ['leads', 'signals', 'outreach', 'feedback'] as const;
 type Tab = (typeof TABS)[number];
@@ -17,12 +20,20 @@ export function DashboardPage() {
   const { tab } = useParams();
   const navigate = useNavigate();
   const { current } = useCurrentProduct();
-  const active: Tab = TABS.includes(tab as Tab) ? (tab as Tab) : 'leads';
+  const { hasFeature, activeOrg } = useAuth();
+  const enabled: Record<Tab, boolean> = {
+    leads: true,
+    signals: hasFeature('signals'),
+    outreach: hasFeature('outreach'),
+    feedback: true,
+  };
+  const requested: Tab = TABS.includes(tab as Tab) ? (tab as Tab) : 'leads';
+  const active: Tab = enabled[requested] ? requested : 'leads';
   const [signalsView, setSignalsView] = useState<'timeline' | 'list'>('timeline');
 
   return (
     <div className="flex flex-col h-full min-h-0">
-      <KpiStrip product={current} />
+      <KpiStrip product={current} features={{ signals: enabled.signals, outreach: enabled.outreach }} />
       <div className="flex items-center justify-between gap-3 px-4 md:px-6 py-3 border-b border-[var(--border)]">
         <Tabs
           value={active}
@@ -31,8 +42,12 @@ export function DashboardPage() {
         >
           <TabsList>
             <TabsTrigger value="leads">Leads</TabsTrigger>
-            <TabsTrigger value="signals">Signals</TabsTrigger>
-            <TabsTrigger value="outreach">Outreach</TabsTrigger>
+            <GatedTab value="signals" enabled={enabled.signals} reason={featureReason('signals', activeOrg?.name)}>
+              Signals
+            </GatedTab>
+            <GatedTab value="outreach" enabled={enabled.outreach} reason={featureReason('outreach', activeOrg?.name)}>
+              Outreach
+            </GatedTab>
             <TabsTrigger value="feedback">Feedback</TabsTrigger>
           </TabsList>
         </Tabs>
@@ -78,5 +93,28 @@ export function DashboardPage() {
         </Tabs>
       </div>
     </div>
+  );
+}
+
+function GatedTab({
+  value,
+  enabled,
+  reason,
+  children,
+}: {
+  value: Tab;
+  enabled: boolean;
+  reason: string;
+  children: React.ReactNode;
+}) {
+  if (enabled) return <TabsTrigger value={value}>{children}</TabsTrigger>;
+  return (
+    <TooltipHint label={reason}>
+      <span className="inline-flex" tabIndex={0}>
+        <TabsTrigger value={value} disabled className="opacity-50">
+          {children}
+        </TabsTrigger>
+      </span>
+    </TooltipHint>
   );
 }
