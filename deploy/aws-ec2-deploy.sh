@@ -24,7 +24,10 @@ done
 "${SSH[@]}" 'docker compose version' >/dev/null
 
 log "copying git HEAD to /opt/hothotleads"
-git -C "$REPO_ROOT" archive --format=tar HEAD | "${SSH[@]}" 'mkdir -p /opt/hothotleads && tar -x -C /opt/hothotleads'
+# Wipe the previous source tree first: extracting over it would keep files deleted in git
+# (and nest/tsc compile everything under src/). .env and backups/ live outside these dirs.
+"${SSH[@]}" 'mkdir -p /opt/hothotleads && cd /opt/hothotleads && rm -rf apps packages deploy docs Dockerfile docker-compose*.yml Caddyfile package*.json turbo.json'
+git -C "$REPO_ROOT" archive --format=tar HEAD | "${SSH[@]}" 'tar -x -C /opt/hothotleads'
 
 if ! "${SSH[@]}" 'test -f /opt/hothotleads/.env'; then
   DOMAIN=${DOMAIN:-$(echo "$IP" | tr . -).sslip.io}
@@ -85,7 +88,9 @@ if "${SSH[@]}" 'docker ps --format "{{.Names}}" | grep -q "^hothotleads-postgres
 fi
 
 log "building and starting the stack (first build takes several minutes)"
-"${SSH[@]}" 'cd /opt/hothotleads && docker compose -f docker-compose.prod.yml up -d --build 2>&1 | tail -5'
+# pipefail on the remote side so a failed image build fails this script instead of leaving the old container running.
+"${SSH[@]}" 'cd /opt/hothotleads && set -o pipefail && docker compose -f docker-compose.prod.yml up -d --build 2>&1 | tail -8' \
+  || { echo "build/start failed; the previous release is still running" >&2; exit 1; }
 
 DOMAIN=$("${SSH[@]}" "grep '^DOMAIN=' /opt/hothotleads/.env | cut -d= -f2")
 log "waiting for the API"
