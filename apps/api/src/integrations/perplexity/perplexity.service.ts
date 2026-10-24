@@ -19,12 +19,32 @@ export interface PerplexityResult {
   citations: PerplexityCitation[];
 }
 
+/** The subset of the Agent API response this service reads. */
+interface AgentApiResponse {
+  status?: string;
+  error?: { message?: string } | null;
+  output?: Array<
+    | { type: 'message'; content?: Array<{ type: string; text?: string }> }
+    | { type: 'search_results'; results?: Array<{ url: string; title?: string; snippet?: string }> }
+    | { type: string }
+  >;
+}
+
+const SYSTEM_INSTRUCTIONS =
+  'You are a research assistant specializing in regulatory and industry analysis. Return factual, concise answers with specific dates, entities, and source references.';
+
+/**
+ * Perplexity web research via the Agent API. The former Sonar chat-completions
+ * endpoint answers 403 since Sonar moved to `/v1/agent` (support ends 2026-09-27).
+ */
 @Injectable()
 export class PerplexityService {
   private readonly logger = new Logger(PerplexityService.name);
   private readonly apiKey: string;
-  private readonly baseUrl = 'https://api.perplexity.ai/chat/completions';
-  private readonly model = 'llama-3.1-sonar-large-128k-online';
+  private readonly baseUrl = 'https://api.perplexity.ai/v1/agent';
+  /** Effort tier that replaces the Sonar model: fast web-grounded answers. */
+  private readonly effort = 'fast';
+  private readonly maxOutputTokens = 1024;
 
   constructor(private readonly config: ConfigService) {
     this.apiKey = this.config.get<string>('perplexity.apiKey') ?? '';
@@ -36,36 +56,42 @@ export class PerplexityService {
     this.logger.debug(`Perplexity search: "${query}" (recency=${recencyFilter})`);
 
     const body = {
-      model: this.model,
-      messages: [
-        {
-          role: 'system',
-          content:
-            'You are a research assistant specializing in regulatory and industry analysis. Return factual, concise answers with specific dates, entities, and source references.',
-        },
-        { role: 'user', content: query },
-      ],
-      search_recency_filter: recencyFilter,
-      return_citations: returnCitations,
+      effort: this.effort,
+      instructions: SYSTEM_INSTRUCTIONS,
+      input: query,
+      max_output_tokens: this.maxOutputTokens,
+      tools: [{ type: 'web_search', filters: { search_recency_filter: recencyFilter } }],
     };
 
-    const response = await axios.post(this.baseUrl, body, {
+    const response = await axios.post<AgentApiResponse>(this.baseUrl, body, {
       headers: {
         Authorization: `Bearer ${this.apiKey}`,
         'Content-Type': 'application/json',
       },
-      timeout: 30_000,
+      timeout: 60_000,
     });
 
     const data = response.data;
-    const choice = data.choices?.[0];
-    const answer = choice?.message?.content ?? '';
-    const rawCitations: string[] = data.citations ?? [];
+    if (data.error?.message) {
+      throw new Error(`Perplexity error: ${data.error.message}`);
+    }
 
-    return {
-      answer,
-      citations: rawCitations.map((url) => ({ url })),
-    };
+    let answer = '';
+    const citations: PerplexityCitation[] = [];
+    for (const item of data.output ?? []) {
+      if (item.type === 'message' && 'content' in item) {
+        answer += (item.content ?? [])
+          .filter((c) => c.type === 'output_text' && c.text)
+          .map((c) => c.text)
+          .join('');
+      } else if (item.type === 'search_results' && 'results' in item && returnCitations) {
+        for (const r of item.results ?? []) {
+          citations.push({ url: r.url, title: r.title, snippet: r.snippet });
+        }
+      }
+    }
+
+    return { answer, citations };
   }
 
   async searchRegulatory(
