@@ -24,8 +24,8 @@ import {
   Session,
   AuthToken,
   ChannelCredential,
-  ProductChat,
-  ProductChatMessage,
+  Chat,
+  ChatMessage,
   ProductsRepository,
   LeadsRepository,
   SignalsRepository,
@@ -37,7 +37,7 @@ import {
   SessionsRepository,
   AuthTokensRepository,
   ChannelCredentialsRepository,
-  ProductChatsRepository,
+  ChatsRepository,
 } from '@hothotleads/db';
 
 const ENTITIES = [
@@ -57,8 +57,8 @@ const ENTITIES = [
   Schedule,
   FeedbackEntry,
   ChannelCredential,
-  ProductChat,
-  ProductChatMessage,
+  Chat,
+  ChatMessage,
 ];
 
 // Every repository is a plain class over the EntityManager; provide them all here once.
@@ -74,7 +74,7 @@ const REPOSITORIES = [
   SessionsRepository,
   AuthTokensRepository,
   ChannelCredentialsRepository,
-  ProductChatsRepository,
+  ChatsRepository,
 ];
 
 @Module({

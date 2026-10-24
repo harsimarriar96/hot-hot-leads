@@ -220,3 +220,14 @@ export type {
   PlatformOrganization,
   PlatformUser,
 } from './auth';
+export type {
+  ChatContentBlock,
+  ChatRoleName,
+  ChatSourceChannelName,
+  ChatSummary,
+  ChatMessageView,
+  ChatDetail,
+  CreateChatBody,
+  SendMessageBody,
+  ChatSseEvent,
+} from './chat';

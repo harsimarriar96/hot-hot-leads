@@ -1,12 +1,16 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowUp, CornerDownLeft } from 'lucide-react';
-import { Textarea } from '@/components/ui/input';
-import { ChatMessageBubble } from '@/components/chat-message';
-import { useChat, useNow } from '@/hooks/use-chat';
+import { useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
+import { PanelLeft } from 'lucide-react';
+import { Composer } from '@/components/chat/composer';
+import { ConversationList, UNTITLED } from '@/components/chat/conversation-list';
+import { MessageList } from '@/components/chat/message-list';
+import { Button } from '@/components/ui/button';
+import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet';
+import { useAuth } from '@/hooks/use-auth';
+import { useChatDetail } from '@/hooks/use-chats';
+import { useChatStream } from '@/hooks/use-chat-stream';
 import { useCurrentProduct } from '@/hooks/use-product';
 import { cn } from '@/lib/utils';
-import { Button } from '@/components/ui/button';
-import { useAuth } from '@/hooks/use-auth';
 import { FEATURE_LABELS, FeatureUnavailable } from '@/components/gate';
 import type { FeatureKey } from '@hothotleads/types';
 
@@ -32,115 +36,100 @@ export function ChatPage() {
 }
 
 function ChatPageInner({ canRun }: { canRun: boolean }) {
-  const { messages, send, isRunning } = useChat();
+  const { chatId: chatIdParam } = useParams<{ chatId?: string }>();
+  const chatId = chatIdParam ?? null;
+  const navigate = useNavigate();
   const { current } = useCurrentProduct();
-  const [draft, setDraft] = useState('');
-  const logRef = useRef<HTMLDivElement>(null);
+  const [listOpen, setListOpen] = useState(false);
 
-  const anyPipelineRunning = useMemo(
-    () => messages.some((m) => m.pipeline?.status === 'running'),
-    [messages]
-  );
-  const nowMs = useNow(anyPipelineRunning);
+  const { data: detail } = useChatDetail(chatId);
+  const { messages, send, busy, loading } = useChatStream({
+    chatId,
+    onChatCreated: (id) => navigate(`/chat/${id}`, { replace: true }),
+  });
 
-  useEffect(() => {
-    logRef.current?.scrollTo({ top: logRef.current.scrollHeight, behavior: 'smooth' });
-  }, [messages.length, nowMs]);
-
-  function handleSubmit(e?: React.FormEvent) {
-    e?.preventDefault();
-    if (!draft.trim() || isRunning || !canRun) return;
-    send(draft.trim());
-    setDraft('');
+  function selectChat(id: string) {
+    setListOpen(false);
+    navigate(`/chat/${id}`);
+  }
+  function newChat() {
+    setListOpen(false);
+    navigate('/chat');
   }
 
   function quickFire(action: QuickAction) {
-    if (isRunning || !canRun) return;
-    const product = current ?? 'Product - Energy';
-    send(action.build(product));
+    if (busy || !canRun) return;
+    send(action.build(current ?? 'Product - Energy'));
   }
 
-  const isEmpty = messages.length === 0;
+  const isEmpty = messages.length === 0 && !loading;
+  const title = chatId ? (detail?.chat.title ?? UNTITLED) : 'New chat';
 
   return (
-    <div className="flex flex-col h-full min-h-0">
-      <div ref={logRef} className="flex-1 overflow-y-auto">
-        <div className="mx-auto max-w-[760px] px-4 md:px-6 py-6 md:py-8">
-          {isEmpty ? (
-            <EmptyState
-              currentProduct={current}
-              onQuick={quickFire}
-              disabled={isRunning || !canRun}
-            />
-          ) : (
-            <div className="space-y-5">
-              {messages.map((m) => (
-                <ChatMessageBubble key={m.id} message={m} nowMs={nowMs} />
-              ))}
+    <div className="flex h-full min-h-0">
+      <ConversationList
+        selectedId={chatId}
+        onSelect={selectChat}
+        onNew={newChat}
+        onDeleted={() => navigate('/chat')}
+        showProduct
+        className="hidden md:flex w-64 shrink-0 border-r border-[var(--border)] bg-[var(--surface-2)]"
+      />
+
+      <div className="flex flex-col flex-1 min-w-0 min-h-0">
+        <div className="md:hidden flex items-center gap-2 border-b border-[var(--border)] px-3 h-10 shrink-0">
+          <Button type="button" variant="ghost" size="icon" aria-label="Conversations" onClick={() => setListOpen(true)}>
+            <PanelLeft className="h-4 w-4" />
+          </Button>
+          <span className="truncate text-sm font-medium text-[var(--text)]">{title}</span>
+        </div>
+
+        <MessageList
+          messages={messages}
+          className="px-4 md:px-6 py-6 md:py-8 [&>div]:mx-auto [&>div]:max-w-[760px]"
+          emptyState={
+            isEmpty && !chatId ? (
+              <div className="mx-auto max-w-[760px]">
+                <EmptyState currentProduct={current} onQuick={quickFire} disabled={busy || !canRun} />
+              </div>
+            ) : loading ? (
+              <p className="text-center text-xs text-[var(--text-tertiary)] pt-10">Loading…</p>
+            ) : (
+              <p className="text-center text-sm text-[var(--text-tertiary)] pt-10">
+                Ask the agent to generate leads, check signals, or draft outreach.
+              </p>
+            )
+          }
+        />
+
+        <Composer
+          onSend={send}
+          busy={busy}
+          canRun={canRun}
+          placeholder="Ask the orchestrator — e.g. “generate 5 leads for Energy”"
+          className="border-t border-[var(--border)] bg-[var(--app)] px-4 md:px-6 pt-3 pb-4 [&>div]:mx-auto [&>div]:max-w-[760px]"
+        >
+          {!isEmpty && (
+            <div className="mx-auto max-w-[760px]">
+              <QuickActionPills currentProduct={current} onFire={quickFire} disabled={busy} dense />
             </div>
           )}
-        </div>
+        </Composer>
       </div>
 
-      {!canRun ? (
-        <p className="shrink-0 border-t border-[var(--border)] px-4 md:px-6 py-3 text-xs text-[var(--text-tertiary)]">
-          Your role can read this chat but not run the agents.
-        </p>
-      ) : (
-      <form
-        onSubmit={handleSubmit}
-        className={cn(
-          'shrink-0 border-t border-[var(--border)] bg-[var(--app)]',
-          'px-4 md:px-6 pt-3 pb-4'
-        )}
-      >
-        <div className="mx-auto max-w-[760px]">
-          {!isEmpty && (
-            <QuickActionPills
-              currentProduct={current}
-              onFire={quickFire}
-              disabled={isRunning}
-              dense
-            />
-          )}
-          <div className="relative">
-            <Textarea
-              value={draft}
-              onChange={(e) => setDraft(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                  e.preventDefault();
-                  handleSubmit();
-                }
-              }}
-              placeholder={
-                isRunning
-                  ? 'Pipeline running…'
-                  : 'Ask the orchestrator — e.g. “generate 5 leads for Energy”'
-              }
-              disabled={isRunning}
-              rows={2}
-              className="pr-14 text-[14px] leading-[1.5]"
-            />
-            <div className="absolute right-2 bottom-2 flex items-center gap-1.5">
-              <span className="hidden sm:inline-flex items-center gap-1 text-[10px] font-mono uppercase tracking-[0.1em] text-[var(--text-tertiary)] pr-1">
-                <CornerDownLeft className="h-3 w-3" />
-                send
-              </span>
-              <Button
-                type="submit"
-                variant="primary"
-                size="icon"
-                disabled={isRunning || !draft.trim()}
-                aria-label="Send message"
-              >
-                <ArrowUp className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
-        </div>
-      </form>
-      )}
+      <Sheet open={listOpen} onOpenChange={setListOpen}>
+        <SheetContent className="max-w-[320px]">
+          <SheetTitle className="sr-only">Conversations</SheetTitle>
+          <ConversationList
+            selectedId={chatId}
+            onSelect={selectChat}
+            onNew={newChat}
+            onDeleted={() => navigate('/chat')}
+            showProduct
+            className="flex-1 pt-8"
+          />
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }
@@ -262,6 +251,7 @@ function EmptyState({
             for newline
           </li>
           <li>Commands support natural phrasing — e.g. “check signals from last 7 days”.</li>
+          <li>Each chat remembers its own history; start a new one for a fresh context.</li>
         </ul>
       </div>
     </div>

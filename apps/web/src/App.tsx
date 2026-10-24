@@ -86,7 +86,7 @@ function AppRoutes() {
           <Route index element={<Navigate to="/products" replace />} />
           <Route path="/products" element={<ProductsListPage />} />
           <Route path="/products/:productId" element={<ProductDetailPage />} />
-          <Route path="/chat" element={<ChatPage />} />
+          <Route path="/chat/:chatId?" element={<ChatPage />} />
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/dashboard/:tab" element={<DashboardPage />} />
           <Route path="/schedules" element={<SchedulesPage />} />

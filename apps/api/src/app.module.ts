@@ -14,13 +14,12 @@ import { AuthModule } from './modules/auth/auth.module';
 import { OnboardingModule } from './modules/onboarding/onboarding.module';
 import { SettingsModule } from './modules/settings/settings.module';
 import { ProductsModule } from './modules/products/products.module';
-import { ProductChatModule } from './modules/chat/chat.module';
+import { ChatModule } from './modules/chat/chat.module';
 import { AdminModule } from './modules/admin/admin.module';
 import { OrganizationModule } from './modules/organization/organization.module';
 import { PlatformModule } from './modules/platform/platform.module';
 import { SchedulesApiModule } from './modules/schedules/schedules.module';
 import { HealthController } from './health.controller';
-import { ChatController } from './chat.controller';
 import { ReportsController } from './reports.controller';
 
 // Schedules are not production-ready (in-process cron, single instance only).
@@ -47,12 +46,12 @@ const schedulesEnabled = configuration().features.schedules;
     OnboardingModule,
     SettingsModule,
     ProductsModule,
-    ProductChatModule,
+    ChatModule,
     AdminModule,
     OrganizationModule,
     PlatformModule,
     ...(schedulesEnabled ? [AppSchedulerModule, SchedulesApiModule] : []),
   ],
-  controllers: [HealthController, ChatController, ReportsController],
+  controllers: [HealthController, ReportsController],
 })
 export class AppModule {}

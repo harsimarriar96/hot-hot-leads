@@ -60,25 +60,3 @@ export interface Feedback {
   overallAssessment?: string;
   createdAt?: string;
 }
-
-export interface ChatReply {
-  reply: string;
-  elapsedMs: number;
-}
-
-export type PipelineKind = 'leads' | 'signals' | 'outreach' | 'feedback' | 'generic';
-
-export interface PipelineStep {
-  id: string;
-  label: string;
-  description: string;
-  /** Expected duration used only for the visual simulation. */
-  expectedMs: number;
-}
-
-export interface PipelineStepState extends PipelineStep {
-  status: 'waiting' | 'running' | 'done' | 'failed';
-  startedAt?: number;
-  endedAt?: number;
-  output?: string;
-}

@@ -3,10 +3,13 @@ import { createSdkMcpServer, query, tool } from '@anthropic-ai/claude-agent-sdk'
 
 import { DEFAULT_MODELS } from '../../config/models';
 import type { ZodRawShape } from 'zod';
-import type { FeatureKey, Permission } from '@hothotleads/types';
+import type { ChatContentBlock, FeatureKey, Permission } from '@hothotleads/types';
 
 import { requireOrg, type OrgContext, type TenantContext } from '../../modules/auth/tenant-context';
 import { partitionTools, tenantPreamble } from './tool-access';
+import { renderHistory, type HistoryTurn } from './history';
+
+export type { HistoryTurn } from './history';
 
 /**
  * Hard stop for runaway agent loops. One "turn" is one model round-trip; a full
@@ -20,6 +23,8 @@ export interface AgentRunOptions {
   model?: string;
   extraContext?: string;
   maxTurns?: number;
+  /** Prior turns of the conversation this run continues. Rendered into the system overlay. */
+  history?: HistoryTurn[];
 }
 
 export interface AgentToolDef {
@@ -31,15 +36,7 @@ export interface AgentToolDef {
   handler: (input: Record<string, unknown>, ctx: OrgContext) => Promise<unknown>;
 }
 
-export type AssistantContentBlock =
-  | { type: 'text'; text: string }
-  | { type: 'tool_use'; id: string; name: string; input: Record<string, unknown> }
-  | {
-      type: 'tool_result';
-      tool_use_id: string;
-      content: string | Record<string, unknown>;
-      is_error?: boolean;
-    };
+export type AssistantContentBlock = ChatContentBlock;
 
 export type AgentEvent =
   | { type: 'message_start'; messageId: string }
@@ -120,7 +117,13 @@ export abstract class BaseAgent {
     const mcpServer = createSdkMcpServer({ name: serverName, version: '1.0.0', tools });
     const toolNames = defs.map((d) => `mcp__${serverName}__${d.name}`);
 
-    const systemPrompt = [tenantPreamble(ctx, hidden), options.extraContext, this.systemPrompt]
+    // History goes last so the tenant preamble and the canonical agent prompt stay first.
+    const systemPrompt = [
+      tenantPreamble(ctx, hidden),
+      options.extraContext,
+      this.systemPrompt,
+      renderHistory(options.history),
+    ]
       .filter(Boolean)
       .join('\n\n---\n\n');
 

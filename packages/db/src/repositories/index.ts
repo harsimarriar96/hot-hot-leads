@@ -38,4 +38,9 @@ export {
   type StoredCredentialBlob,
   type RedactedCredential,
 } from './channel-credentials.repository';
-export { ProductChatsRepository, type AppendMessageInput } from './product-chats.repository';
+export {
+  ChatsRepository,
+  type AppendMessageInput,
+  type CreateChatInput,
+  type ListChatsOptions,
+} from './chats.repository';

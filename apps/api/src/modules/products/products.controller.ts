@@ -592,9 +592,7 @@ export class ProductsController {
     const result = await em
       .getConnection()
       .execute(
-        `select max(pcm.created_at) as last from product_chat_messages pcm
-         join product_chats pc on pc.id = pcm.chat_id
-         where pc.product_id = ?`,
+        `select max("last_message_at") as last from "chats" where "product_id" = ?`,
         [productId],
       );
     const first = (result as Array<{ last: Date | null }>)[0];

@@ -13,7 +13,7 @@ export interface NavItem {
 export function useNavItems(): NavItem[] {
   const { hasFeature } = useAuth();
   const items: NavItem[] = [{ to: '/products', label: 'Products', icon: Package, end: false }];
-  if (hasFeature('chat')) items.push({ to: '/chat', label: 'Chat', icon: MessagesSquare, end: true });
+  if (hasFeature('chat')) items.push({ to: '/chat', label: 'Chat', icon: MessagesSquare, end: false });
   items.push({ to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, end: false });
   if (hasFeature('schedules')) items.push({ to: '/schedules', label: 'Schedules', icon: Clock, end: false, soon: true });
   items.push({ to: '/settings', label: 'Settings', icon: Settings, end: false });

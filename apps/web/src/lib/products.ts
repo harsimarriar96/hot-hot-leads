@@ -42,29 +42,7 @@ export interface ProductDetail {
   }>;
 }
 
-export interface ProductChatView {
-  chat: { id: string; createdAt: string; updatedAt: string };
-  messages: Array<{
-    id: string;
-    role: 'user' | 'assistant' | 'tool';
-    contentBlocks: ChatContentBlock[];
-    sourceChannel: 'web' | 'telegram' | 'whatsapp';
-    sourceRef: string | null;
-    createdAt: string;
-  }>;
-}
-
-export type ChatContentBlock =
-  | { type: 'text'; text: string }
-  | { type: 'tool_use'; id: string; name: string; input: Record<string, unknown> }
-  | {
-      type: 'tool_result';
-      tool_use_id: string;
-      content: string | Record<string, unknown>;
-      is_error?: boolean;
-    };
-
-import { apiFetch, apiJson, deleteJson, errorFromResponse, parseBody } from './http';
+import { apiJson, deleteJson } from './http';
 
 const jsonOrThrow = apiJson;
 
@@ -153,70 +131,3 @@ export const adminApi = {
       method: 'POST',
     }),
 };
-
-export const productChatApi = {
-  get: (productId: string) =>
-    jsonOrThrow<ProductChatView>(`/api/products/${productId}/chat`),
-  clear: async (productId: string) => {
-    await deleteJson(`/api/products/${productId}/chat`);
-  },
-  /** Start SSE stream. Returns an AbortController; consumer reads events via the callback. */
-  stream: (
-    productId: string,
-    text: string,
-    onEvent: (event: { type: string; [key: string]: unknown }) => void,
-    onError?: (err: Error) => void,
-    onDone?: () => void,
-  ): AbortController => {
-    const controller = new AbortController();
-    apiFetch(`/api/products/${productId}/chat/messages`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Accept: 'text/event-stream' },
-      body: JSON.stringify({ text }),
-      signal: controller.signal,
-    })
-      .then(async (res) => {
-        if (!res.ok) throw errorFromResponse(res, await parseBody(res));
-        if (!res.body) throw new Error('Empty response body');
-        const reader = res.body.getReader();
-        const decoder = new TextDecoder();
-        let buffer = '';
-        for (;;) {
-          const { value, done } = await reader.read();
-          if (done) break;
-          buffer += decoder.decode(value, { stream: true });
-          let idx: number;
-          while ((idx = buffer.indexOf('\n\n')) >= 0) {
-            const rawEvent = buffer.slice(0, idx);
-            buffer = buffer.slice(idx + 2);
-            const parsed = parseSseEvent(rawEvent);
-            if (parsed) onEvent(parsed);
-          }
-        }
-        onDone?.();
-      })
-      .catch((err) => {
-        if ((err as Error).name === 'AbortError') return;
-        onError?.(err as Error);
-      });
-    return controller;
-  },
-};
-
-function parseSseEvent(raw: string): { type: string; [key: string]: unknown } | null {
-  const lines = raw.split('\n');
-  let eventType = 'message';
-  let dataStr = '';
-  for (const line of lines) {
-    if (line.startsWith(':')) continue;
-    if (line.startsWith('event:')) eventType = line.slice(6).trim();
-    else if (line.startsWith('data:')) dataStr += line.slice(5).trim();
-  }
-  if (!dataStr) return null;
-  try {
-    const data = JSON.parse(dataStr);
-    return { ...data, type: data.type ?? eventType };
-  } catch {
-    return null;
-  }
-}

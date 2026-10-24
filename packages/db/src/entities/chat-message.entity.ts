@@ -1,27 +1,20 @@
 import { Entity, Enum, Index, ManyToOne, PrimaryKey, Property } from '@mikro-orm/core';
 import { randomUUID } from 'node:crypto';
+import type { ChatContentBlock } from '@hothotleads/types';
 
-import { ProductChat } from './product-chat.entity';
+import { Chat } from './chat.entity';
 import { ChatRole, ChatSourceChannel } from '../enums';
 
-export type ChatContentBlock =
-  | { type: 'text'; text: string }
-  | { type: 'tool_use'; id: string; name: string; input: Record<string, unknown> }
-  | {
-      type: 'tool_result';
-      tool_use_id: string;
-      content: string | Record<string, unknown>;
-      is_error?: boolean;
-    };
+export type { ChatContentBlock };
 
-@Entity({ tableName: 'product_chat_messages' })
-@Index({ properties: ['chat', 'createdAt'], name: 'product_chat_messages_chat_created_idx' })
-export class ProductChatMessage {
+@Entity({ tableName: 'chat_messages' })
+@Index({ properties: ['chat', 'createdAt'], name: 'chat_messages_chat_created_idx' })
+export class ChatMessage {
   @PrimaryKey({ type: 'uuid', defaultRaw: 'gen_random_uuid()' })
   id: string = randomUUID();
 
-  @ManyToOne(() => ProductChat, { fieldName: 'chat_id', deleteRule: 'cascade' })
-  chat!: ProductChat;
+  @ManyToOne(() => Chat, { fieldName: 'chat_id', deleteRule: 'cascade' })
+  chat!: Chat;
 
   @Enum({ items: () => ChatRole, nativeEnumName: 'chat_role' })
   role!: ChatRole;

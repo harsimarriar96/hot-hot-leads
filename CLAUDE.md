@@ -141,6 +141,8 @@ Product (root of the GTM domain)
 │     └── OutreachDraft        1:N  — drafts per lead, multiple channels
 ├── Signal                     1:N  — buying intent / hiring / activity signals
 ├── Schedule                   1:N  — recurring tasks delivered via Telegram/WhatsApp
+├── Chat                       1:N  — conversations linked to the product (also owned by the organization)
+│     └── ChatMessage          1:N  — append-only content blocks
 └── FeedbackEntry              1:N  — agent quality scores
 ```
 
@@ -169,20 +171,23 @@ The API fails fast at boot if `DATABASE_URL` is missing or unreachable.
 - **Webhooks:** Telegram requests must carry `X-Telegram-Bot-Api-Secret-Token` equal to `TELEGRAM_WEBHOOK_SECRET`; WhatsApp requests must carry a valid `X-Hub-Signature-256` (HMAC of the raw body with `WHATSAPP_APP_SECRET`). Both are rejected while their secret is empty.
 - **SPA serving:** `ServeStaticModule` serves `apps/web/dist` for every non-API path, so browser reloads on client routes work in production.
 
-## Product chats
+## Chats
 
-Each product has a single, persistent chat thread rooted on `product_chats` + `product_chat_messages`. Messages are append-only and store Anthropic-shaped `content_blocks` (text / tool_use / tool_result) as JSONB.
+Conversations are organization-scoped rows in `chats` (optional `product_id`, `title`, `created_by_user_id`, `last_message_at`) with append-only `chat_messages` storing Anthropic-shaped `content_blocks` (text / tool_use / tool_result) as JSONB. Any member with `chat:read` sees every conversation; `chat:write` creates / renames / deletes / clears; `agents:run` sends.
 
-- **Web chat surface:** `/products/:productId` Chat tab. `POST /api/products/:productId/chat/messages` returns Server-Sent Events (`message_start`, `text_delta`, `tool_use_start`, `tool_use_result`, `message_done`, `error`). The client renders text incrementally and discloses tool calls inline.
-- **Streaming agent:** [BaseAgent.runStream](apps/api/src/agents/base/base.agent.ts) maps the Claude Agent SDK's async iterator into the event types above. Non-streaming `run()` is a thin wrapper that drains the generator.
-- **Channel sync:** `ChatService.handleIncoming` is used by both Telegram and WhatsApp handlers. Channels are still deployment-wide (env credentials), so a message is routed to the organization only when the deployment hosts exactly one (`ChatService.resolveOrgForSender`; otherwise it replies that routing is not configured) and acts as that organization's earliest owner. When `organizations.sync_channel_chats = true` (default) and a product is resolved, the exchange is persisted to the product thread with `source_channel` set to `telegram` or `whatsapp`.
-- **Product management:** `/api/products` — list / get / create / patch / delete. Delete cascades to leads, outreach drafts, signals, schedules, feedback, and chat messages via the DB FKs.
-- **Client disconnect:** the SSE handler continues the orchestrator run to completion even if the client aborts mid-stream, so the assistant message is always persisted in full. A subsequent `GET /api/products/:productId/chat` shows the complete reply.
+- **API:** `/api/chats` — list (`?productId=`), create, get (`{ chat, messages }`), `PATCH` title, `DELETE` (cascade), `DELETE /:id/messages` (clear, keeps the row), `POST /:id/messages` (SSE), and `POST /api/chats/messages { text, productId? }` which creates the conversation and streams the first turn (`message_start` carries `chatId`, `userMessageId`, `title`; `message_done` carries `assistantMessageId`). Shared types live in `packages/types/src/chat.ts`; the SSE writer is `apps/api/src/modules/chat/sse.ts`.
+- **Web:** `/chat` and `/chat/:chatId` (one route, optional segment) show a conversation sidebar plus the thread; the product Chat tab shows the product's conversations in a rail. Both use `hooks/use-chat-stream.ts` and `components/chat/*`; the API client is `lib/chats.ts` over `lib/sse.ts`. Titles are derived server-side from the first user message (`chat-title.ts`).
+- **Model memory:** every turn passes the conversation's prior turns as `AgentRunOptions.history` (`chat-history.ts` reduces them to text, `agents/base/history.ts` renders at most 20 turns / 4k chars each / 24k total into the system overlay, after the canonical prompt). Only the orchestrator's top-level run gets history.
+- **Streaming agent:** [BaseAgent.runStream](apps/api/src/agents/base/base.agent.ts) maps the Claude Agent SDK's async iterator into `message_start`, `text_delta`, `tool_use_start`, `tool_use_result`, `message_done`, `error`. Non-streaming `run()` drains the generator.
+- **Channel sync:** `ChatService.handleIncoming` is used by both Telegram and WhatsApp handlers. Channels are still deployment-wide (env credentials), so a message is routed to the organization only when the deployment hosts exactly one (`ChatService.resolveOrgForSender`) and acts as that organization's earliest owner. When `organizations.sync_channel_chats = true` (default) and a product is resolved, the exchange lands in the product's newest conversation that already has messages from that channel, else the product's newest conversation, else a new one titled `<Product> · <channel>`.
+- **Product management:** `/api/products` — list / get / create / patch / delete. Delete cascades to leads, outreach drafts, signals, schedules, feedback, and chats via the DB FKs. `lastChatActivityAt` reads `chats.last_message_at`.
+- **Client disconnect:** the SSE handler continues the orchestrator run to completion even if the client aborts mid-stream, so the assistant message is always persisted in full.
 
 ### Known scope calls
 
 - The Overview tab edits basics (name / generalInfo / salesStrategy / pricing). ICP, sales-channel, source, and predefined-prospect editing is **display-only in v1**; editing those nested collections comes in a follow-up.
 - Telegram/WhatsApp messages that don't resolve to a product fall back to running the orchestrator directly without persistence. A "product selection" convention for channels is a future concern.
+- Conversations started from `/chat` have no product; the orchestrator infers it from the text. A product picker in the `/chat` composer is a follow-up.
 
 ## Onboarding
 

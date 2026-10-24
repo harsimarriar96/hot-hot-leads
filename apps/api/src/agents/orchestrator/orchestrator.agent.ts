@@ -13,8 +13,6 @@ import { SignalMonitorAgent } from '../signal-monitor/signal-monitor.agent';
 import { BuyingIntentAgent } from '../buying-intent/buying-intent.agent';
 import { ProductsRepository, SchedulesRepository } from '@hothotleads/db';
 import { ORCHESTRATOR_SYSTEM_PROMPT } from './orchestrator.prompts';
-import { IncomingMessage } from '../../common/types';
-import type { TenantContext } from '../../modules/auth/tenant-context';
 
 @Injectable()
 export class OrchestratorAgent extends BaseAgent {
@@ -35,11 +33,6 @@ export class OrchestratorAgent extends BaseAgent {
     private readonly feedbackAgent: FeedbackAgent,
   ) {
     super();
-  }
-
-  async handleMessage(ctx: TenantContext, message: IncomingMessage): Promise<string> {
-    const context = `User channel: ${message.channel} | User ID: ${message.userId} | Chat ID: ${message.chatId}`;
-    return this.run(message.text, { ctx, extraContext: context });
   }
 
   protected buildTools(): AgentToolDef[] {

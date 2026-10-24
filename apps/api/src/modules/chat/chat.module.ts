@@ -5,12 +5,12 @@ import { AgentsModule } from '../../agents/agents.module';
 import { AuthModule } from '../auth/auth.module';
 import { ChatTranscriptService } from './chat-transcript.service';
 import { ChatService } from './chat.service';
-import { ProductChatController } from './chat.controller';
+import { ChatsController } from './chats.controller';
 
 @Module({
   imports: [DbModule, AgentsModule, AuthModule],
   providers: [ChatTranscriptService, ChatService],
-  controllers: [ProductChatController],
+  controllers: [ChatsController],
   exports: [ChatService, ChatTranscriptService],
 })
-export class ProductChatModule {}
+export class ChatModule {}

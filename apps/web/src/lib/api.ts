@@ -1,5 +1,5 @@
-import { apiJson, postJson } from './http';
-import type { ChatReply, Feedback, Lead, Outreach, Product, Signal } from './types';
+import { apiJson } from './http';
+import type { Feedback, Lead, Outreach, Product, Signal } from './types';
 
 async function getJSON<T>(url: string): Promise<T> {
   const data = await apiJson<T>(url);
@@ -20,5 +20,4 @@ export const api = {
     getJSON<Outreach[]>(`/api/outreach?product=${encodeURIComponent(product)}`),
   feedback: (product: string) =>
     getJSON<Feedback[]>(`/api/feedback?product=${encodeURIComponent(product)}`),
-  chat: (text: string) => postJson<ChatReply>('/api/chat', { text }),
 };
