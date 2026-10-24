@@ -84,7 +84,7 @@ function DesktopSidebar() {
   const nav = useNavItems();
   const { isPlatformAdmin } = useAuth();
   return (
-    <aside className="hidden md:flex w-56 shrink-0 flex-col border-r border-[var(--border)] bg-[var(--surface-2)]">
+    <aside className="hidden md:flex w-56 shrink-0 min-h-0 flex-col overflow-y-auto border-r border-[var(--border)] bg-[var(--surface-2)]">
       <div className="flex items-center h-12 px-4 border-b border-[var(--border)]">
         <NavLink to="/products" aria-label="HotHotLeads home" className="block">
           <Logo className="h-7" />
@@ -211,16 +211,20 @@ function SupportModeBanner() {
 
 export function AppShell() {
   return (
-    <div className="flex flex-col h-full bg-[var(--app)]">
+    // The shell is clipped to the viewport so the document itself never scrolls:
+    // only <main> (and the sidebar, when the window is too short) scroll.
+    <div className="flex flex-col h-full overflow-hidden bg-[var(--app)]">
       <SupportModeBanner />
       <AgentActivityStrip />
       <div className="flex flex-1 min-h-0">
         <DesktopSidebar />
-        <div className="flex-1 flex flex-col min-w-0 pb-16 md:pb-0">
+        <div className="flex-1 flex flex-col min-w-0 min-h-0 pb-16 md:pb-0">
           <MobileTopBar />
           <PageHeader />
-          {/* The page scrolls inside main so the sidebar and header stay put. */}
-          <main className="flex-1 min-h-0 overflow-y-auto">
+          {/* The page scrolls inside main so the sidebar and header stay put.
+              overscroll-contain stops a wheel/trackpad scroll past the end of the
+              page from chaining to the document and dragging the sidebar with it. */}
+          <main className="flex-1 min-h-0 overflow-y-auto overscroll-contain">
             <Outlet />
           </main>
         </div>
