@@ -16,7 +16,13 @@ export {
   type SaveOutreachInput,
   type QueryLeadsInput,
 } from './leads.repository';
-export { SignalsRepository, type SaveSignalInput } from './signals.repository';
+export {
+  SignalsRepository,
+  pendingSignalWhere,
+  type SaveSignalInput,
+  type GetSignalsOptions,
+  type ReviewSignalInput,
+} from './signals.repository';
 export { SchedulesRepository, type SaveScheduleInput } from './schedules.repository';
 export { FeedbackRepository, type SaveFeedbackInput } from './feedback.repository';
 export {

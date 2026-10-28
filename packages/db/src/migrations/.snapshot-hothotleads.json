@@ -401,6 +401,16 @@
             "manual"
           ]
         },
+        "signal_status": {
+          "name": "signal_status",
+          "schema": "public",
+          "items": [
+            "pending",
+            "approved",
+            "rejected",
+            "snoozed"
+          ]
+        },
         "signal_type": {
           "name": "signal_type",
           "schema": "public",
@@ -738,6 +748,16 @@
             "manual"
           ]
         },
+        "signal_status": {
+          "name": "signal_status",
+          "schema": "public",
+          "items": [
+            "pending",
+            "approved",
+            "rejected",
+            "snoozed"
+          ]
+        },
         "signal_type": {
           "name": "signal_type",
           "schema": "public",
@@ -1063,6 +1083,16 @@
             "tavily",
             "perplexity",
             "manual"
+          ]
+        },
+        "signal_status": {
+          "name": "signal_status",
+          "schema": "public",
+          "items": [
+            "pending",
+            "approved",
+            "rejected",
+            "snoozed"
           ]
         },
         "signal_type": {
@@ -1433,6 +1463,16 @@
             "tavily",
             "perplexity",
             "manual"
+          ]
+        },
+        "signal_status": {
+          "name": "signal_status",
+          "schema": "public",
+          "items": [
+            "pending",
+            "approved",
+            "rejected",
+            "snoozed"
           ]
         },
         "signal_type": {
@@ -1809,6 +1849,16 @@
             "tavily",
             "perplexity",
             "manual"
+          ]
+        },
+        "signal_status": {
+          "name": "signal_status",
+          "schema": "public",
+          "items": [
+            "pending",
+            "approved",
+            "rejected",
+            "snoozed"
           ]
         },
         "signal_type": {
@@ -2378,6 +2428,16 @@
             "manual"
           ]
         },
+        "signal_status": {
+          "name": "signal_status",
+          "schema": "public",
+          "items": [
+            "pending",
+            "approved",
+            "rejected",
+            "snoozed"
+          ]
+        },
         "signal_type": {
           "name": "signal_type",
           "schema": "public",
@@ -2706,6 +2766,16 @@
             "tavily",
             "perplexity",
             "manual"
+          ]
+        },
+        "signal_status": {
+          "name": "signal_status",
+          "schema": "public",
+          "items": [
+            "pending",
+            "approved",
+            "rejected",
+            "snoozed"
           ]
         },
         "signal_type": {
@@ -3082,6 +3152,16 @@
             "manual"
           ]
         },
+        "signal_status": {
+          "name": "signal_status",
+          "schema": "public",
+          "items": [
+            "pending",
+            "approved",
+            "rejected",
+            "snoozed"
+          ]
+        },
         "signal_type": {
           "name": "signal_type",
           "schema": "public",
@@ -3407,6 +3487,16 @@
             "tavily",
             "perplexity",
             "manual"
+          ]
+        },
+        "signal_status": {
+          "name": "signal_status",
+          "schema": "public",
+          "items": [
+            "pending",
+            "approved",
+            "rejected",
+            "snoozed"
           ]
         },
         "signal_type": {
@@ -3761,6 +3851,16 @@
             "tavily",
             "perplexity",
             "manual"
+          ]
+        },
+        "signal_status": {
+          "name": "signal_status",
+          "schema": "public",
+          "items": [
+            "pending",
+            "approved",
+            "rejected",
+            "snoozed"
           ]
         },
         "signal_type": {
@@ -4127,6 +4227,16 @@
             "manual"
           ]
         },
+        "signal_status": {
+          "name": "signal_status",
+          "schema": "public",
+          "items": [
+            "pending",
+            "approved",
+            "rejected",
+            "snoozed"
+          ]
+        },
         "signal_type": {
           "name": "signal_type",
           "schema": "public",
@@ -4431,6 +4541,16 @@
             "tavily",
             "perplexity",
             "manual"
+          ]
+        },
+        "signal_status": {
+          "name": "signal_status",
+          "schema": "public",
+          "items": [
+            "pending",
+            "approved",
+            "rejected",
+            "snoozed"
           ]
         },
         "signal_type": {
@@ -4760,6 +4880,16 @@
             "tavily",
             "perplexity",
             "manual"
+          ]
+        },
+        "signal_status": {
+          "name": "signal_status",
+          "schema": "public",
+          "items": [
+            "pending",
+            "approved",
+            "rejected",
+            "snoozed"
           ]
         },
         "signal_type": {
@@ -5183,6 +5313,16 @@
             "tavily",
             "perplexity",
             "manual"
+          ]
+        },
+        "signal_status": {
+          "name": "signal_status",
+          "schema": "public",
+          "items": [
+            "pending",
+            "approved",
+            "rejected",
+            "snoozed"
           ]
         },
         "signal_type": {
@@ -5681,6 +5821,16 @@
             "manual"
           ]
         },
+        "signal_status": {
+          "name": "signal_status",
+          "schema": "public",
+          "items": [
+            "pending",
+            "approved",
+            "rejected",
+            "snoozed"
+          ]
+        },
         "signal_type": {
           "name": "signal_type",
           "schema": "public",
@@ -6062,6 +6212,16 @@
             "manual"
           ]
         },
+        "signal_status": {
+          "name": "signal_status",
+          "schema": "public",
+          "items": [
+            "pending",
+            "approved",
+            "rejected",
+            "snoozed"
+          ]
+        },
         "signal_type": {
           "name": "signal_type",
           "schema": "public",
@@ -6287,6 +6447,76 @@
           "comment": null,
           "enumItems": [],
           "mappedType": "datetime"
+        },
+        "status": {
+          "name": "status",
+          "type": "signal_status",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": "'pending'",
+          "comment": null,
+          "enumItems": [
+            "pending",
+            "approved",
+            "rejected",
+            "snoozed"
+          ],
+          "mappedType": "unknown",
+          "nativeEnumName": "signal_status"
+        },
+        "reviewed_at": {
+          "name": "reviewed_at",
+          "type": "timestamptz(6)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": 6,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "datetime"
+        },
+        "reviewed_by_user_id": {
+          "name": "reviewed_by_user_id",
+          "type": "uuid",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "uuid"
+        },
+        "snoozed_until": {
+          "name": "snoozed_until",
+          "type": "timestamptz(6)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": 6,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "datetime"
         }
       },
       "name": "signals",
@@ -6310,6 +6540,17 @@
           "composite": true,
           "constraint": false,
           "keyName": "signals_product_detected_at_idx",
+          "unique": false,
+          "primary": false
+        },
+        {
+          "columnNames": [
+            "product_id",
+            "status"
+          ],
+          "composite": true,
+          "constraint": false,
+          "keyName": "signals_product_status_idx",
           "unique": false,
           "primary": false
         }
@@ -6459,6 +6700,16 @@
             "tavily",
             "perplexity",
             "manual"
+          ]
+        },
+        "signal_status": {
+          "name": "signal_status",
+          "schema": "public",
+          "items": [
+            "pending",
+            "approved",
+            "rejected",
+            "snoozed"
           ]
         },
         "signal_type": {
@@ -6799,6 +7050,16 @@
             "manual"
           ]
         },
+        "signal_status": {
+          "name": "signal_status",
+          "schema": "public",
+          "items": [
+            "pending",
+            "approved",
+            "rejected",
+            "snoozed"
+          ]
+        },
         "signal_type": {
           "name": "signal_type",
           "schema": "public",
@@ -6959,6 +7220,16 @@
         "tavily",
         "perplexity",
         "manual"
+      ]
+    },
+    "signal_status": {
+      "name": "signal_status",
+      "schema": "public",
+      "items": [
+        "pending",
+        "approved",
+        "rejected",
+        "snoozed"
       ]
     },
     "signal_type": {

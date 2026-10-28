@@ -31,7 +31,7 @@ const TYPE_ICON: Record<string, LucideIcon> = {
   buying_intent: Zap,
 };
 
-const TYPE_LABEL: Record<string, string> = {
+export const TYPE_LABEL: Record<string, string> = {
   hiring_org: 'Hiring',
   hiring: 'Hiring',
   funding: 'Funding',
@@ -59,10 +59,21 @@ function relativeDayLabel(isoDate: string): string {
   return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
 }
 
-export function SignalsTimeline({ product }: { product: string | null }) {
+export function SignalsTimeline({
+  product,
+  status,
+  review,
+  days = 30,
+}: {
+  product: string | null;
+  status?: string[];
+  /** Show the review queue (pending, or snoozed and due) instead of a status / day window. */
+  review?: boolean;
+  days?: number;
+}) {
   const q = useQuery({
-    queryKey: ['signals', product, 30],
-    queryFn: () => api.signals(product!, 30),
+    queryKey: ['signals', product, days, status, review],
+    queryFn: () => api.signals(product!, days, status, review),
     enabled: !!product,
   });
 
@@ -81,7 +92,12 @@ export function SignalsTimeline({ product }: { product: string | null }) {
   }
   const signals = q.data ?? [];
   if (signals.length === 0) {
-    return (
+    return review ? (
+      <EmptyTable
+        title="Nothing waiting for review"
+        hint='Every signal has been reviewed. Switch to "All" to see them.'
+      />
+    ) : (
       <EmptyTable
         title="No signals yet"
         hint={`Try "check signals for ${product} from last 14 days" in the Chat.`}

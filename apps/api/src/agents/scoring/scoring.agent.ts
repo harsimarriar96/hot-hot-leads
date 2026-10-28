@@ -10,7 +10,7 @@ export class ScoringAgent extends BaseAgent {
 
   protected readonly systemPrompt = `You are the Lead Scoring Agent for HotHotLeads.
 
-Score each lead 0–100 based on ICP fit and buying intent signals.
+Score each lead 0–100 based on ICP fit and buying intent signals (only signals a human has approved count).
 
 ## Scoring Dimensions
 | Dimension          | Weight |
@@ -18,7 +18,7 @@ Score each lead 0–100 based on ICP fit and buying intent signals.
 | Industry match     | 25%    |
 | Company size match | 20%    |
 | Funding stage fit  | 15%    |
-| Active signals     | 25%    |
+| Approved signals   | 25%    |
 | Timing indicators  | 15%    |
 
 ## Score Bands

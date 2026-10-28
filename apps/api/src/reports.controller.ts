@@ -5,6 +5,7 @@ import {
   LeadsRepository,
   OutreachDraft,
   Product,
+  SignalStatus,
   SignalsRepository,
 } from '@hothotleads/db';
 
@@ -38,10 +39,20 @@ export class ReportsController {
 
   @Get('signals')
   @RequirePermission('signals:read')
-  async signals(@Auth() auth: TenantContext, @Query('product') product: string, @Query('days') days?: string) {
+  async signals(
+    @Auth() auth: TenantContext,
+    @Query('product') product: string,
+    @Query('days') days?: string,
+    @Query('status') status?: string,
+    @Query('review') review?: string,
+  ) {
     if (!product) return { error: 'product query param required' };
     const { org } = requireOrg(auth);
-    return this.signalsRepo.getSignals(org.id, product, days ? Number(days) : 14);
+    return this.signalsRepo.getSignals(org.id, product, days ? Number(days) : 14, {
+      status: parseSignalStatuses(status),
+      // `?review=1` returns the dashboard's review queue (pending, or snoozed and due; no age cap).
+      review: review === '1' || review === 'true',
+    });
   }
 
   @Get('outreach')
@@ -131,6 +142,14 @@ export class ReportsController {
       createdAt: e.createdAt,
     }));
   }
+}
+
+/** Comma-separated `?status=` values; unknown ones are ignored, none means every status. */
+function parseSignalStatuses(raw?: string): SignalStatus[] | undefined {
+  if (!raw) return undefined;
+  const known = new Set<string>(Object.values(SignalStatus));
+  const statuses = raw.split(',').map((s) => s.trim()).filter((s) => known.has(s)) as SignalStatus[];
+  return statuses.length ? statuses : undefined;
 }
 
 /** ISO-8601 week key, e.g. "2026-W17". */

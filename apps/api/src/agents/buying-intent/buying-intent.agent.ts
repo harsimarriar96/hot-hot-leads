@@ -5,7 +5,7 @@ import { z } from 'zod';
 import { BaseAgent, AgentToolDef } from '../base/base.agent';
 import { DEFAULT_MODELS } from '../../config/models';
 import { ProductsRepository } from '@hothotleads/db';
-import { SignalsRepository } from '@hothotleads/db';
+import { SignalStatus, SignalsRepository } from '@hothotleads/db';
 import { LeadsRepository } from '@hothotleads/db';
 import type { TenantContext } from '../../modules/auth/tenant-context';
 
@@ -73,7 +73,7 @@ Always provide a clear, specific reasoning for the score. Reference specific sig
     return [
       {
         name: 'get_signals_for_company',
-        description: 'Load all recent signals for a specific company.',
+        description: 'Load recent signals for a specific company — approved signals only; pending/rejected/snoozed ones are excluded.',
         schema: {
           productName: z.string(),
           company: z.string(),
@@ -84,6 +84,7 @@ Always provide a clear, specific reasoning for the score. Reference specific sig
             ctx.org.id,
             input.productName as string,
             (input.daysBack as number) ?? 30,
+            { status: [SignalStatus.APPROVED] },
           );
           const company = (input.company as string).toLowerCase();
           return signals.filter((s) =>

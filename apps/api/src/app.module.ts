@@ -15,6 +15,8 @@ import { OnboardingModule } from './modules/onboarding/onboarding.module';
 import { SettingsModule } from './modules/settings/settings.module';
 import { ProductsModule } from './modules/products/products.module';
 import { ChatModule } from './modules/chat/chat.module';
+import { DashboardModule } from './modules/dashboard/dashboard.module';
+import { SignalsModule } from './modules/signals/signals.module';
 import { AdminModule } from './modules/admin/admin.module';
 import { OrganizationModule } from './modules/organization/organization.module';
 import { PlatformModule } from './modules/platform/platform.module';
@@ -47,6 +49,8 @@ const schedulesEnabled = configuration().features.schedules;
     SettingsModule,
     ProductsModule,
     ChatModule,
+    DashboardModule,
+    SignalsModule,
     AdminModule,
     OrganizationModule,
     PlatformModule,

@@ -50,6 +50,10 @@ export type SignalType =
 
 export type SignalSourceName = 'exa' | 'tavily' | 'perplexity' | 'manual';
 
+export type SignalStatus = 'pending' | 'approved' | 'rejected' | 'snoozed';
+
+export const SIGNAL_STATUSES: readonly SignalStatus[] = ['pending', 'approved', 'rejected', 'snoozed'];
+
 export type OutreachToneName = 'formal' | 'casual' | 'friendly';
 
 export type SourceTypeName = 'news' | 'newsletter' | 'database' | 'social' | 'other';
@@ -120,6 +124,9 @@ export interface SignalRecord {
   relevanceScore?: number;
   detectedAt: string;
   expiresAt?: string;
+  status?: SignalStatus;
+  reviewedAt?: string;
+  snoozedUntil?: string;
 }
 
 export interface PredefinedProspect {
@@ -231,3 +238,4 @@ export type {
   SendMessageBody,
   ChatSseEvent,
 } from './chat';
+export type { DashboardOverview } from './dashboard';

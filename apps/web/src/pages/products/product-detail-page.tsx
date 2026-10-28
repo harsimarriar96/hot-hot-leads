@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { ChevronLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -18,18 +18,30 @@ import { Can, FeatureUnavailable, featureReason } from '@/components/gate';
 import { productsApi, type ProductSummary } from '@/lib/products';
 import { ProductOverviewTab } from './tabs/overview-tab';
 import { ProductLeadsTab } from './tabs/leads-tab';
+import { ProductSignalsTab } from './tabs/signals-tab';
 import { ProductChatTab } from './tabs/chat-tab';
 
-type Tab = 'overview' | 'leads' | 'chat';
+const TABS = ['overview', 'leads', 'signals', 'chat'] as const;
+type Tab = (typeof TABS)[number];
+
+const isTab = (v: string | null | undefined): v is Tab => TABS.includes(v as Tab);
 
 function readStoredTab(productId: string): Tab {
   try {
     const v = localStorage.getItem(`product-tab:${productId}`);
-    if (v === 'overview' || v === 'leads' || v === 'chat') return v;
+    if (isTab(v)) return v;
   } catch {
     /* ignore */
   }
   return 'overview';
+}
+
+function storeTab(productId: string, tab: Tab) {
+  try {
+    localStorage.setItem(`product-tab:${productId}`, tab);
+  } catch {
+    /* ignore */
+  }
 }
 
 export function ProductDetailPage() {
@@ -37,10 +49,34 @@ export function ProductDetailPage() {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const toast = useToast();
-  const [tab, setTab] = useState<Tab>(productId ? readStoredTab(productId) : 'overview');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const paramTab = searchParams.get('tab');
+  // A valid ?tab= wins over the remembered tab (and is remembered itself), so dashboard
+  // deep links land where they say.
+  const [tab, setTab] = useState<Tab>(() => {
+    if (isTab(paramTab)) {
+      if (productId) storeTab(productId, paramTab);
+      return paramTab;
+    }
+    return productId ? readStoredTab(productId) : 'overview';
+  });
   const [confirmDelete, setConfirmDelete] = useState(false);
   const { can, hasFeature, activeOrg } = useAuth();
   const chatEnabled = hasFeature('chat');
+  const signalsEnabled = hasFeature('signals');
+  const tabEnabled: Record<Tab, boolean> = {
+    overview: true,
+    leads: true,
+    signals: signalsEnabled,
+    chat: chatEnabled,
+  };
+
+  // Links to the same product with a different ?tab= do not remount the page.
+  useEffect(() => {
+    if (!isTab(paramTab) || paramTab === tab) return;
+    setTab(paramTab);
+    if (productId) storeTab(productId, paramTab);
+  }, [paramTab, tab, productId]);
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ['product', productId],
@@ -89,13 +125,10 @@ export function ProductDetailPage() {
 
   function switchTab(next: Tab) {
     setTab(next);
-    if (productId) {
-      try {
-        localStorage.setItem(`product-tab:${productId}`, next);
-      } catch {
-        /* ignore */
-      }
-    }
+    if (productId) storeTab(productId, next);
+    const params = new URLSearchParams(searchParams);
+    params.set('tab', next);
+    setSearchParams(params, { replace: true });
   }
 
   if (!productId) return null;
@@ -169,13 +202,13 @@ export function ProductDetailPage() {
       </header>
 
       <nav className="flex gap-1 border-b border-[var(--border)] mb-5">
-        {(['overview', 'leads', 'chat'] as const).map((t) => {
+        {TABS.map((t) => {
           const button = (
             <button
               key={t}
               type="button"
               onClick={() => switchTab(t)}
-              disabled={t === 'chat' && !chatEnabled}
+              disabled={!tabEnabled[t]}
               className={`px-3 py-2 text-sm capitalize -mb-px border-b-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
                 tab === t
                   ? 'border-[var(--accent)] text-[var(--text)] font-medium'
@@ -185,8 +218,8 @@ export function ProductDetailPage() {
               {t}
             </button>
           );
-          return t === 'chat' && !chatEnabled ? (
-            <TooltipHint key={t} label={featureReason('chat', activeOrg?.name)}>
+          return !tabEnabled[t] ? (
+            <TooltipHint key={t} label={featureReason(t === 'chat' ? 'chat' : 'signals', activeOrg?.name)}>
               <span className="inline-flex" tabIndex={0}>
                 {button}
               </span>
@@ -206,6 +239,12 @@ export function ProductDetailPage() {
           />
         )}
         {tab === 'leads' && <ProductLeadsTab productName={data.name} product={data} />}
+        {tab === 'signals' &&
+          (signalsEnabled ? (
+            <ProductSignalsTab productName={data.name} />
+          ) : (
+            <FeatureUnavailable feature="signals" />
+          ))}
         {tab === 'chat' &&
           (chatEnabled ? (
             <ProductChatTab productId={data.id} productName={data.name} />

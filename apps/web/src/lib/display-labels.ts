@@ -17,6 +17,34 @@ export function leadStatusLabel(status: string | undefined | null): string {
   return LEAD_STATUS_LABELS[status] ?? status;
 }
 
+const SIGNAL_STATUS_LABELS: Record<string, string> = {
+  pending: 'Unverified',
+  approved: 'Approved',
+  rejected: 'Rejected',
+  snoozed: 'Snoozed',
+};
+
+/** Operator-facing label for a signal review status; an unset status is still unverified. */
+export function signalStatusLabel(status: string | undefined | null): string {
+  return SIGNAL_STATUS_LABELS[status ?? 'pending'] ?? status ?? 'Unverified';
+}
+
+/** Badge variant for a signal review status. */
+export function signalStatusVariant(
+  status: string | undefined | null,
+): 'neutral' | 'success' | 'error' | 'warm' {
+  switch (status) {
+    case 'approved':
+      return 'success';
+    case 'rejected':
+      return 'error';
+    case 'snoozed':
+      return 'warm';
+    default:
+      return 'neutral';
+  }
+}
+
 export type ScoreTone = 'hot' | 'warm' | 'lukewarm' | 'cold' | 'unscored';
 
 /**

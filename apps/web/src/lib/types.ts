@@ -35,6 +35,10 @@ export interface Signal {
   description?: string;
   sourceUrl?: string;
   detectedAt?: string;
+  status?: string;
+  relevanceScore?: number | null;
+  snoozedUntil?: string | null;
+  reviewedAt?: string | null;
 }
 
 export interface Outreach {

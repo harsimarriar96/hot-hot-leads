@@ -1,6 +1,7 @@
 export { LeadStatus } from './lead-status.enum';
 export { SignalType } from './signal-type.enum';
 export { SignalSource } from './signal-source.enum';
+export { SignalStatus } from './signal-status.enum';
 export { OutreachTone } from './outreach-tone.enum';
 export { AgentType } from './agent-type.enum';
 export { SourceType } from './source-type.enum';

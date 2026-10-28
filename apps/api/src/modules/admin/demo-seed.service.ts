@@ -18,6 +18,7 @@ import {
   ScheduleFrequency,
   Signal,
   SignalSource,
+  SignalStatus,
   SignalType,
   SourceType,
   User,
@@ -27,7 +28,7 @@ import { EntitlementsService } from '../auth/entitlements.service';
 import type { OrgContext } from '../auth/tenant-context';
 
 const DEMO_PRODUCT_NAME = 'Acme AI';
-const DEMO_PRODUCT_SLUG = 'acme-ai';
+export const DEMO_PRODUCT_SLUG = 'acme-ai';
 
 @Injectable()
 export class DemoSeedService {
@@ -223,13 +224,14 @@ function buildDemoLeads(product: Product): Array<Record<string, unknown>> {
   }));
 }
 
+/** Most signals stay `pending` (the entity default) so the review queue is populated; a few are pre-approved. */
 function buildDemoSignals(product: Product): Array<Record<string, unknown>> {
   const now = Date.now();
   const dayAgo = (n: number) => new Date(now - n * 24 * 60 * 60 * 1000);
   return [
-    { product, type: SignalType.HIRING_ORG, source: SignalSource.EXA, description: 'Verge Data posted 4 SDR roles on LinkedIn', company: 'Verge Data', sourceUrl: 'https://linkedin.com/jobs/verge', relevanceScore: 9, detectedAt: dayAgo(1) },
-    { product, type: SignalType.FUNDING, source: SignalSource.EXA, description: 'Kite Security raised $18M Series A (Accel lead)', company: 'Kite Security', sourceUrl: 'https://techcrunch.com/kite-18m', relevanceScore: 10, detectedAt: dayAgo(2) },
-    { product, type: SignalType.COMPANY_ACTIVITY, source: SignalSource.TAVILY, description: 'Lumen Stack opened Berlin office; hiring EU Sales lead', company: 'Lumen Stack', sourceUrl: 'https://lumenstack.io/blog/eu', relevanceScore: 8, detectedAt: dayAgo(3) },
+    { product, type: SignalType.HIRING_ORG, source: SignalSource.EXA, description: 'Verge Data posted 4 SDR roles on LinkedIn', company: 'Verge Data', status: SignalStatus.APPROVED, sourceUrl: 'https://linkedin.com/jobs/verge', relevanceScore: 9, detectedAt: dayAgo(1) },
+    { product, type: SignalType.FUNDING, source: SignalSource.EXA, description: 'Kite Security raised $18M Series A (Accel lead)', company: 'Kite Security', status: SignalStatus.APPROVED, sourceUrl: 'https://techcrunch.com/kite-18m', relevanceScore: 10, detectedAt: dayAgo(2) },
+    { product, type: SignalType.COMPANY_ACTIVITY, source: SignalSource.TAVILY, description: 'Lumen Stack opened Berlin office; hiring EU Sales lead', company: 'Lumen Stack', status: SignalStatus.APPROVED, sourceUrl: 'https://lumenstack.io/blog/eu', relevanceScore: 8, detectedAt: dayAgo(3) },
     { product, type: SignalType.LEADERSHIP_CHANGE, source: SignalSource.EXA, description: 'Halo Route named new CRO from Segment', company: 'Halo Route', sourceUrl: 'https://linkedin.com/halo-cro', relevanceScore: 7, detectedAt: dayAgo(4) },
     { product, type: SignalType.PRODUCT_LAUNCH, source: SignalSource.PERPLEXITY, description: 'Quanta Labs v2 launched with enterprise SSO', company: 'Quanta Labs', sourceUrl: 'https://quanta.ai/v2', relevanceScore: 6, detectedAt: dayAgo(5) },
     { product, type: SignalType.CONTENT_SOCIAL, source: SignalSource.PERPLEXITY, description: 'Fenway founder published viral post on embedded finance', company: 'Fenway Analytics', sourceUrl: 'https://twitter.com/fenwayco/status/x', relevanceScore: 5, detectedAt: dayAgo(6) },

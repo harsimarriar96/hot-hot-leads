@@ -88,7 +88,7 @@ function AppRoutes() {
           <Route path="/products/:productId" element={<ProductDetailPage />} />
           <Route path="/chat/:chatId?" element={<ChatPage />} />
           <Route path="/dashboard" element={<DashboardPage />} />
-          <Route path="/dashboard/:tab" element={<DashboardPage />} />
+          <Route path="/dashboard/*" element={<Navigate to="/dashboard" replace />} />
           <Route path="/schedules" element={<SchedulesPage />} />
           <Route path="/settings" element={<SettingsPage />} />
           <Route path="/settings/:tab" element={<SettingsPage />} />

@@ -14,8 +14,13 @@ export const api = {
   products: () => getJSON<Product[]>('/api/products'),
   leads: (product: string) =>
     getJSON<Lead[]>(`/api/leads?product=${encodeURIComponent(product)}`),
-  signals: (product: string, days = 14) =>
-    getJSON<Signal[]>(`/api/signals?product=${encodeURIComponent(product)}&days=${days}`),
+  /** `review` asks for the server's review queue (pending, or snoozed and due), ignoring `days` and `status`. */
+  signals: (product: string, days = 14, status?: string[], review?: boolean) =>
+    getJSON<Signal[]>(
+      `/api/signals?product=${encodeURIComponent(product)}&days=${days}${
+        status && status.length > 0 ? `&status=${status.map(encodeURIComponent).join(',')}` : ''
+      }${review ? '&review=1' : ''}`,
+    ),
   outreach: (product: string) =>
     getJSON<Outreach[]>(`/api/outreach?product=${encodeURIComponent(product)}`),
   feedback: (product: string) =>

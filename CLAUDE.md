@@ -139,7 +139,7 @@ Product (root of the GTM domain)
 ├── PredefinedProspect         1:N  — seed companies for prospect discovery
 ├── Lead                       1:N
 │     └── OutreachDraft        1:N  — drafts per lead, multiple channels
-├── Signal                     1:N  — buying intent / hiring / activity signals
+├── Signal                     1:N  — buying intent / hiring / activity signals; status pending|approved|rejected|snoozed
 ├── Schedule                   1:N  — recurring tasks delivered via Telegram/WhatsApp
 ├── Chat                       1:N  — conversations linked to the product (also owned by the organization)
 │     └── ChatMessage          1:N  — append-only content blocks
@@ -170,6 +170,8 @@ The API fails fast at boot if `DATABASE_URL` is missing or unreachable.
 - **Web client:** all requests go through `apps/web/src/lib/http.ts` (`apiFetch` / `apiJson`), which attaches the token and the `X-Organization-Id` header and signs the user out on a 401. Do not call `fetch` directly from components. `hooks/use-auth.tsx` exposes `useAuth()` (`can`, `hasFeature`, `limit`, `switchOrganization`); `components/gate.tsx` has `<Can>`, `<RequireFeature>`, `<GateHint>`. Gating rule: a missing role permission **hides** a control, a disabled feature **disables** it with a tooltip (and hides nav / shows `FeatureUnavailable` for routes), a reached limit disables with the counts. `App.tsx` gates: sign-in → organization → onboarding → app, with `/platform` before the organization gate.
 - **Webhooks:** Telegram requests must carry `X-Telegram-Bot-Api-Secret-Token` equal to `TELEGRAM_WEBHOOK_SECRET`; WhatsApp requests must carry a valid `X-Hub-Signature-256` (HMAC of the raw body with `WHATSAPP_APP_SECRET`). Both are rejected while their secret is empty.
 - **SPA serving:** `ServeStaticModule` serves `apps/web/dist` for every non-API path, so browser reloads on client routes work in production.
+- **Dashboard:** `GET /api/dashboard/overview` (`leads:read`) returns the cross-product `DashboardOverview` (`packages/types/src/dashboard.ts`): totals, score-bucket pipeline, top hot leads, the newest pending signals and a per-product row, computed server-side in `modules/dashboard/dashboard.service.ts` (`summarise()` is pure). When the `signals` feature is off, signal numbers are zero and `signalsEnabled` is false without querying signals.
+- **Signal review:** `POST /api/signals/:id/review { action: 'approve' | 'reject' | 'snooze', snoozeDays? }` (`signals:write` + `signals` feature) maps the action to a `SignalStatus`, stamps the reviewer, and returns the updated signal; `snoozeDays` is 1–90, default 7. `GET /api/signals?product=…` accepts an optional comma-separated `?status=` filter (unknown values ignored) and `?review=1`, which returns the dashboard's review queue (pending, or snoozed and due; no age cap).
 
 ## Chats
 
@@ -239,4 +241,5 @@ HOST, PORT, LOG_LEVEL         # LOG_LEVEL: debug | info | warn | error
 - **Cron runs open their own ORM context** — `SchedulerService.runSchedule` wraps each fire in `RequestContext.create`, otherwise the global identity map would keep serving an organization's entitlements as first loaded.
 - **Per-organization channels are a follow-up** — webhooks and the scheduler still use the deployment-wide Telegram/WhatsApp credentials from env; `ChatService.resolveOrgForSender` is the single hook to replace when sender→organization routing lands.
 - **WhatsApp `chatId` == phone number** — Unlike Telegram, there is no separate chat ID.
+- **Signals carry a review status** (`pending|approved|rejected|snoozed`, new rows default to `pending`); only approved signals feed buying intent (`get_signals_for_company`), the web dashboard counts pending ones, and `signal-monitor`'s dedupe still sees every status.
 - **Lint/test are CI gates** — ESLint 9 flat configs live in each package (`eslint.config.mjs`, extending `packages/config/eslint/base.mjs`); API unit tests are pure (no DB, repositories stubbed) and run with `jest --passWithNoTests`. Tests that import an agent must `jest.mock('@anthropic-ai/claude-agent-sdk')` because the SDK ships as ESM. `.github/workflows/ci.yml` runs typecheck, lint, build, test and a Docker image build.
