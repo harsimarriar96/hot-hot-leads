@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type { ChatContentBlock, ChatSourceChannelName, ChatSseEvent, DenialBody } from '@hothotleads/types';
 import { chatsApi } from '@/lib/chats';
 import { FEATURE_LABELS } from '@/components/gate';
+import { describeToolCall } from '@/lib/tool-labels';
 import { useAgentActivity } from './use-agent-activity';
 import { useToast } from './use-toast';
 import { useChatDetail, useInvalidateChats } from './use-chats';
@@ -98,6 +99,12 @@ export function useChatStream({ chatId, productId, productName, onChatCreated }:
 
       pendingTextRef.current = '';
       const activityId = `chat-${chatId ?? 'new'}-${Date.now()}`;
+      /** Tool calls still awaiting a result; the model may run several at once. */
+      const openTools = new Map<string, { name: string; label: string }>();
+      const syncActivityTool = () => {
+        const current = [...openTools.values()].pop();
+        activity.setTool(activityId, current?.name, current?.label);
+      };
       activity.start({ id: activityId, productId, productName });
 
       const patchAssistant = (fn: (m: DisplayMessage) => DisplayMessage) =>
@@ -147,14 +154,16 @@ export function useChatStream({ chatId, productId, productName, onChatCreated }:
             break;
           case 'tool_use_start':
             flushNow();
-            activity.setTool(activityId, event.name);
+            openTools.set(event.toolUseId, { name: event.name, label: describeToolCall(event.name, event.input) });
+            syncActivityTool();
             patchAssistant((m) => ({
               ...m,
               blocks: [...m.blocks, { type: 'tool_use', id: event.toolUseId, name: event.name, input: event.input }],
             }));
             break;
           case 'tool_use_result':
-            activity.setTool(activityId, undefined);
+            openTools.delete(event.toolUseId);
+            syncActivityTool();
             patchAssistant((m) => ({
               ...m,
               blocks: [

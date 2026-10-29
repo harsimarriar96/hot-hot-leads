@@ -36,8 +36,8 @@ export function ProductPipelineStrip({ productId }: { productId: string }) {
           Pipeline · {active.productName ?? 'running'}
         </span>
         {active.currentTool && (
-          <span className="font-mono text-[10px] text-[var(--accent)]">
-            {active.currentTool}
+          <span className="hhl-shimmer-text text-[11px] truncate max-w-[60%]">
+            {active.currentToolLabel ?? active.currentTool}…
           </span>
         )}
       </div>

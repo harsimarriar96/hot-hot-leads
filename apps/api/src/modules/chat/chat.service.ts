@@ -76,10 +76,7 @@ export class ChatService {
     if (!product) {
       // No product context — fall back to plain orchestrator.run().
       this.logger.debug(`No product resolved for channel message; running orchestrator direct`);
-      return this.orchestrator.run(input.text, {
-        ctx,
-        extraContext: `Channel: ${input.sourceChannel} | Sender: ${input.senderRef}`,
-      });
+      return this.orchestrator.run(input.text, { ctx, extraContext: channelContext(input, null) });
     }
 
     let chatId: string | undefined;
@@ -91,7 +88,7 @@ export class ChatService {
       await this.transcript.persistUserMessage(org.id, chat.id, input.text, input.sourceChannel, input.senderRef);
     }
 
-    const extraContext = `Product: ${product.name} | Channel: ${input.sourceChannel} | Sender: ${input.senderRef}`;
+    const extraContext = channelContext(input, product);
     const events: AgentEvent[] = [];
     for await (const event of this.orchestrator.runStream(input.text, { ctx, extraContext, history })) {
       events.push(event);
@@ -130,7 +127,7 @@ export class ChatService {
 
     const extraContext = product
       ? productContext(product)
-      : 'Source: web | No product selected: infer the product from the request or ask.';
+      : `Source: web | No product selected: infer the product from the request or ask.\n${WEB_DELIVERY}`;
     const model = product ? resolveModelForTier(product.agentModelTier) : undefined;
 
     const contentBlocks: ChatContentBlock[] = [];
@@ -221,11 +218,28 @@ export class ChatService {
   }
 }
 
+const WEB_DELIVERY = 'Delivery: web chat (markdown is rendered).';
+
 function productContext(product: Product): string {
-  const base = `Product: ${product.name} | Source: web | ICP strictness: ${product.icpStrictness}/100`;
+  const base = `Product: ${product.name} | Source: web | ICP strictness: ${product.icpStrictness}/100\n${WEB_DELIVERY}`;
   return product.agentExtraInstructions
     ? `${base}\n\nProduct-specific instructions:\n${product.agentExtraInstructions}`
     : base;
+}
+
+/** Delivery hint for a reply sent as a phone message (Telegram / WhatsApp); the scheduler uses it too. */
+export function channelDelivery(channel: string): string {
+  return (
+    `Delivery: ${channel} message. Plain prose only: no tables, no headings, ` +
+    'at most ~1500 characters. No cards are shown here, so name the companies and the key facts in the text, as short lines.'
+  );
+}
+
+/** Channel runs: who is asking, plus a delivery hint since the reply is sent as a plain phone message. */
+function channelContext(input: IncomingChannelMessage, product: Product | null): string {
+  const source = `Channel: ${input.sourceChannel} | Sender: ${input.senderRef}`;
+  const base = product ? `Product: ${product.name} | ${source}` : source;
+  return `${base}\n${channelDelivery(input.sourceChannel)}`;
 }
 
 /**

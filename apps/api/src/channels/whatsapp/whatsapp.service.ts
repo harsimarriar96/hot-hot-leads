@@ -5,6 +5,7 @@ import { createHmac } from 'node:crypto';
 
 import { IncomingMessage, OutgoingMessage } from '../../common/types';
 import { safeEqual } from '../../modules/auth/auth.service';
+import { chunkMessage, markdownToWhatsAppText } from '../format';
 import { describeHttpError } from '../http-error';
 
 const GRAPH_API = 'https://graph.facebook.com/v19.0';
@@ -32,25 +33,37 @@ export class WhatsAppService implements OnModuleInit {
     }
   }
 
+  /**
+   * Markdown (the default) is chunked, converted to WhatsApp formatting and sent part by
+   * part within the 4096 character text-body limit. The markdown is cut a little short of
+   * that because a converted code span is four characters longer than its markdown.
+   * `format: 'plain'` sends the text as is.
+   */
   async send(message: OutgoingMessage): Promise<void> {
-    try {
-      await axios.post(
-        `${GRAPH_API}/${this.phoneNumberId}/messages`,
-        {
-          messaging_product: 'whatsapp',
-          to: message.chatId,
-          type: 'text',
-          text: { body: message.text },
-        },
-        {
-          headers: { Authorization: `Bearer ${this.accessToken}` },
-        },
-      );
-    } catch (err) {
-      // Never rethrow the axios error itself: its config carries the bearer token.
-      throw new Error(`WhatsApp send failed: ${describeHttpError(err)}`);
+    const chunks =
+      message.format === 'plain'
+        ? chunkMessage(message.text)
+        : chunkMessage(message.text, 4000).map((chunk) => markdownToWhatsAppText(chunk));
+    for (const chunk of chunks) {
+      try {
+        await axios.post(
+          `${GRAPH_API}/${this.phoneNumberId}/messages`,
+          {
+            messaging_product: 'whatsapp',
+            to: message.chatId,
+            type: 'text',
+            text: { body: chunk },
+          },
+          {
+            headers: { Authorization: `Bearer ${this.accessToken}` },
+          },
+        );
+      } catch (err) {
+        // Never rethrow the axios error itself: its config carries the bearer token.
+        throw new Error(`WhatsApp send failed: ${describeHttpError(err)}`);
+      }
     }
-    this.logger.log(`Message sent to ${message.chatId}`);
+    this.logger.log(`Message sent to ${message.chatId} (${chunks.length} part(s))`);
   }
 
   parseIncoming(payload: Record<string, unknown>): IncomingMessage | null {

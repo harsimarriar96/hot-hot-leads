@@ -143,6 +143,17 @@ describe('ChatService.handleWebMessage', () => {
     delete process.env.CLAUDE_MODEL_HEAVY;
   });
 
+  it('tells the orchestrator markdown is rendered and gives no plain-prose delivery hint', async () => {
+    const h = harness();
+    h.transcript.getChat.mockResolvedValue(chat({ product }));
+
+    await drain(h.service.handleWebMessage(ctx(), { chatId: 'chat-1', text: 'go' }));
+
+    const extraContext = h.orchestrator.runStream.mock.calls[0][1].extraContext ?? '';
+    expect(extraContext).toContain('Delivery: web chat (markdown is rendered)');
+    expect(extraContext).not.toContain('Plain prose only');
+  });
+
   it('404s when the chat is not in the organization', async () => {
     const h = harness();
     h.transcript.getChat.mockResolvedValue(null);
@@ -186,6 +197,17 @@ describe('ChatService.handleIncoming (channels)', () => {
 
     expect(h.transcript.createChat).toHaveBeenCalledWith('org-1', { productId: 'prod-1', title: 'Energy · telegram' });
     expect(h.orchestrator.runStream.mock.calls[0][1].history).toEqual([]);
+  });
+
+  it('asks for plain prose delivery on a channel run', async () => {
+    const h = harness();
+    h.transcript.findLatestWithChannelMessages.mockResolvedValue(chat({ id: 'tg-chat' }));
+
+    await h.service.handleIncoming(incoming);
+
+    const extraContext = h.orchestrator.runStream.mock.calls[0][1].extraContext ?? '';
+    expect(extraContext).toContain('Product: Energy | Channel: telegram | Sender: tg-9');
+    expect(extraContext).toContain('Delivery: telegram message. Plain prose only: no tables, no headings');
   });
 
   it('persists nothing and sends no history when channel sync is off', async () => {

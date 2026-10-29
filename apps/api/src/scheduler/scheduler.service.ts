@@ -8,6 +8,7 @@ import { Schedule, SchedulesRepository } from '@hothotleads/db';
 import { TelegramService } from '../channels/telegram/telegram.service';
 import { WhatsAppService } from '../channels/whatsapp/whatsapp.service';
 import { TenantContextService } from '../modules/auth/tenant-context.service';
+import { channelDelivery } from '../modules/chat/chat.service';
 
 const FREQUENCY_TO_CRON: Record<string, string> = {
   hourly: '0 * * * *',
@@ -112,7 +113,9 @@ export class SchedulerService implements OnApplicationBootstrap {
       const productName = schedule.product?.name;
       const response = await this.orchestrator.run(schedule.taskPrompt, {
         ctx,
-        extraContext: `Scheduled task "${schedule.name}". Channel: ${schedule.channel}, Product: ${productName ?? 'unspecified'}`,
+        extraContext:
+          `Scheduled task "${schedule.name}". Channel: ${schedule.channel}, Product: ${productName ?? 'unspecified'}\n` +
+          channelDelivery(schedule.channel),
       });
 
       await this.deliver(schedule.channel, schedule.chatId, response);
@@ -123,7 +126,7 @@ export class SchedulerService implements OnApplicationBootstrap {
         await this.deliver(
           schedule.channel,
           schedule.chatId,
-          `⚠️ Scheduled task *${schedule.name}* failed. Please check the logs.`,
+          `⚠️ Scheduled task **${schedule.name}** failed. Please check the logs.`,
         );
       } catch (deliverErr) {
         this.logger.error(`Could not deliver failure notice: ${(deliverErr as Error).message}`);

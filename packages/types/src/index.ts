@@ -9,10 +9,14 @@ export interface IncomingMessage {
   rawPayload?: Record<string, unknown>;
 }
 
+/**
+ * Outbound channel message. `format` says what `text` is: 'markdown' (the default, for
+ * model output) is converted per channel in the API's channels/format.ts; 'plain' is sent as is.
+ */
 export interface OutgoingMessage {
   chatId: string;
   text: string;
-  parseMode?: 'Markdown' | 'HTML' | 'MarkdownV2';
+  format?: 'markdown' | 'plain';
   replyToMessageId?: string;
 }
 
@@ -237,5 +241,9 @@ export type {
   CreateChatBody,
   SendMessageBody,
   ChatSseEvent,
+  ChatResultCard,
+  ChatResultCardKind,
+  ChatToolResult,
 } from './chat';
+export { CHAT_RESULT_CARD_KINDS, isChatToolResult } from './chat';
 export type { DashboardOverview } from './dashboard';

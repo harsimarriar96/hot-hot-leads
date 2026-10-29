@@ -22,6 +22,8 @@ export interface AgentActivity {
   productId?: string;
   /** Currently executing tool name, if any. */
   currentTool?: string;
+  /** Plain-language description of that tool call, for display. */
+  currentToolLabel?: string;
   /** Forward-only pipeline progress. */
   stages: Record<PipelineStage, StageState>;
   startedAt: number;
@@ -30,7 +32,7 @@ export interface AgentActivity {
 interface AgentActivityStore {
   activities: AgentActivity[];
   start: (input: { id: string; productName?: string; productId?: string }) => void;
-  setTool: (id: string, toolName: string | undefined) => void;
+  setTool: (id: string, toolName: string | undefined, label?: string) => void;
   end: (id: string) => void;
 }
 
@@ -92,12 +94,12 @@ export function AgentActivityProvider({ children }: { children: React.ReactNode 
     setActivities(next);
   }, []);
 
-  const setTool = useCallback<AgentActivityStore['setTool']>((id, toolName) => {
+  const setTool = useCallback<AgentActivityStore['setTool']>((id, toolName, label) => {
     const next = ref.current.map((a) => {
       if (a.id !== id) return a;
       const stage = toolName ? STAGE_FOR_TOOL[toolName] : undefined;
       const stages = stage ? advanceStages(a.stages, stage) : a.stages;
-      return { ...a, currentTool: toolName, stages };
+      return { ...a, currentTool: toolName, currentToolLabel: toolName ? label : undefined, stages };
     });
     ref.current = next;
     setActivities(next);
@@ -108,6 +110,7 @@ export function AgentActivityProvider({ children }: { children: React.ReactNode 
     if (current) {
       current.stages = finishRunningStages(current.stages);
       current.currentTool = undefined;
+      current.currentToolLabel = undefined;
     }
     const next = ref.current.filter((a) => a.id !== id);
     ref.current = next;

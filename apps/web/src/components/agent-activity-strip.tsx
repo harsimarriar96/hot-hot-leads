@@ -27,7 +27,7 @@ export function AgentActivityStrip() {
         <span className="font-mono text-[10px] uppercase tracking-[0.1em] text-[var(--accent-soft-text)] truncate">
           running
           {first.productName ? ` · ${first.productName}` : ''}
-          {first.currentTool ? ` · ${first.currentTool}` : ''}
+          {first.currentTool ? ` · ${first.currentToolLabel ?? first.currentTool}` : ''}
           {extraCount > 0 ? ` · +${extraCount} more` : ''}
         </span>
       </div>

@@ -156,6 +156,15 @@ export class SignalsRepository {
     return counts;
   }
 
+  /** Signals of a product saved since `since`, newest first (for result cards). */
+  async listCreatedSince(orgId: string, productName: string, since: Date, limit = 25): Promise<Signal[]> {
+    return this.em.fork().find(
+      Signal,
+      { product: { organization: orgId, name: productName }, createdAt: { $gte: since } },
+      { orderBy: { createdAt: 'DESC' }, limit },
+    );
+  }
+
   async findActiveSignals(orgId: string, productId: string): Promise<Signal[]> {
     return this.em.fork().find(
       Signal,

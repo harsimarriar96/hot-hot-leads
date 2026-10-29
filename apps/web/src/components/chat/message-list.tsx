@@ -1,6 +1,7 @@
 import { useEffect, useRef, type ReactNode } from 'react';
 import type { DisplayMessage } from '@/hooks/use-chat-stream';
 import { cn } from '@/lib/utils';
+import { streamingStatus } from '@/lib/tool-labels';
 import { ContentBlockView } from './content-block-view';
 
 export function MessageList({
@@ -34,22 +35,29 @@ export function MessageList({
 
 export function MessageBubble({ message }: { message: DisplayMessage }) {
   const isUser = message.role === 'user';
+  const status = message.streaming ? streamingStatus(message.blocks) : null;
   return (
     <div className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
       <div
-        className={`max-w-[85%] rounded-lg px-3 py-2 text-sm ${
+        className={`rounded-lg px-3 py-2 text-sm ${
           isUser
-            ? 'bg-[var(--accent)] text-[var(--text-on-accent)]'
-            : 'bg-[var(--surface-2)] text-[var(--text)]'
+            ? 'max-w-[85%] bg-[var(--accent)] text-[var(--text-on-accent)]'
+            : 'max-w-[92%] min-w-0 bg-[var(--surface-2)] text-[var(--text)]'
         }`}
       >
         {message.sourceChannel !== 'web' && (
           <p className="mb-1 text-[10px] uppercase tracking-wide opacity-70">via {message.sourceChannel}</p>
         )}
         {message.blocks.map((b, i) => (
-          <ContentBlockView key={i} block={b} />
+          <ContentBlockView key={i} block={b} role={message.role} />
         ))}
-        {message.streaming && <span className="animate-pulse opacity-60">▍</span>}
+        {status ? (
+          <p role="status" aria-live="polite" className="hhl-shimmer-text mt-1 text-xs">
+            {status}
+          </p>
+        ) : (
+          message.streaming && <span className="animate-pulse opacity-60">▍</span>
+        )}
       </div>
     </div>
   );

@@ -1,13 +1,24 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import axios from 'axios';
+import axios, { AxiosError } from 'axios';
 
 import { safeEqual } from '../../modules/auth/auth.service';
+import { chunkMessage, markdownToPlainText, markdownToTelegramHtml } from '../format';
 import { describeHttpError } from '../http-error';
 
 import { IncomingMessage, OutgoingMessage } from '../../common/types';
 
 const TELEGRAM_API = 'https://api.telegram.org/bot';
+
+/** Replaces the axios error (whose config.url embeds the bot token) and keeps the status. */
+class TelegramSendError extends Error {
+  constructor(
+    err: unknown,
+    readonly status = err instanceof AxiosError ? err.response?.status : undefined,
+  ) {
+    super(`Telegram sendMessage failed: ${describeHttpError(err)}`);
+  }
+}
 
 @Injectable()
 export class TelegramService implements OnModuleInit {
@@ -29,19 +40,57 @@ export class TelegramService implements OnModuleInit {
     }
   }
 
+  /**
+   * Markdown (the default) is chunked, converted to Telegram HTML and sent part by part;
+   * a chunk Telegram rejects with 400 (unparseable entities) is resent as plain text.
+   * `format: 'plain'` sends the text as is, without a parse mode.
+   */
   async send(message: OutgoingMessage): Promise<void> {
+    const chunks = chunkMessage(message.text);
+    for (const [index, chunk] of chunks.entries()) {
+      const replyToMessageId = index === 0 ? message.replyToMessageId : undefined;
+      if (message.format === 'plain') {
+        await this.sendMessage(message.chatId, chunk, undefined, replyToMessageId);
+        continue;
+      }
+      try {
+        await this.sendMessage(
+          message.chatId,
+          markdownToTelegramHtml(chunk),
+          'HTML',
+          replyToMessageId,
+        );
+      } catch (err) {
+        if (!(err instanceof TelegramSendError) || err.status !== 400) throw err;
+        this.logger.warn(`${err.message}; resending the part as plain text`);
+        await this.sendMessage(
+          message.chatId,
+          markdownToPlainText(chunk),
+          undefined,
+          replyToMessageId,
+        );
+      }
+    }
+    this.logger.log(`Message sent to chat ${message.chatId} (${chunks.length} part(s))`);
+  }
+
+  private async sendMessage(
+    chatId: string,
+    text: string,
+    parseMode: 'HTML' | undefined,
+    replyToMessageId: string | undefined,
+  ): Promise<void> {
     try {
       await axios.post(`${this.baseUrl}/sendMessage`, {
-        chat_id: message.chatId,
-        text: message.text,
-        parse_mode: message.parseMode ?? 'Markdown',
-        ...(message.replyToMessageId && { reply_to_message_id: message.replyToMessageId }),
+        chat_id: chatId,
+        text,
+        ...(parseMode && { parse_mode: parseMode }),
+        ...(replyToMessageId && { reply_to_message_id: replyToMessageId }),
       });
     } catch (err) {
       // Never rethrow the axios error itself: its config.url embeds the bot token.
-      throw new Error(`Telegram sendMessage failed: ${describeHttpError(err)}`);
+      throw new TelegramSendError(err);
     }
-    this.logger.log(`Message sent to chat ${message.chatId}`);
   }
 
   async sendTyping(chatId: string): Promise<void> {

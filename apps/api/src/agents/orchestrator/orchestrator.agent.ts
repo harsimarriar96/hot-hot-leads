@@ -11,8 +11,22 @@ import { ProspectDiscoveryAgent } from '../prospect-discovery/prospect-discovery
 import { ScoringAgent } from '../scoring/scoring.agent';
 import { SignalMonitorAgent } from '../signal-monitor/signal-monitor.agent';
 import { BuyingIntentAgent } from '../buying-intent/buying-intent.agent';
-import { ProductsRepository, SchedulesRepository } from '@hothotleads/db';
+import {
+  AgentType,
+  FeedbackRepository,
+  LeadsRepository,
+  ProductsRepository,
+  SchedulesRepository,
+  SignalsRepository,
+} from '@hothotleads/db';
 import { ORCHESTRATOR_SYSTEM_PROMPT } from './orchestrator.prompts';
+import {
+  buildFeedbackCard,
+  buildLeadsCard,
+  buildOutreachCard,
+  buildSignalsCard,
+  toolResult,
+} from './result-cards';
 
 @Injectable()
 export class OrchestratorAgent extends BaseAgent {
@@ -23,6 +37,9 @@ export class OrchestratorAgent extends BaseAgent {
     private readonly config: ConfigService,
     private readonly productsRepo: ProductsRepository,
     private readonly schedulesRepo: SchedulesRepository,
+    private readonly leadsRepo: LeadsRepository,
+    private readonly signalsRepo: SignalsRepository,
+    private readonly feedbackRepo: FeedbackRepository,
     private readonly productContextAgent: ProductContextAgent,
     private readonly prospectDiscoveryAgent: ProspectDiscoveryAgent,
     private readonly enrichmentAgent: EnrichmentAgent,
@@ -43,7 +60,15 @@ export class OrchestratorAgent extends BaseAgent {
         description: 'List all products available in this organization.',
         schema: {},
         requires: { permission: 'products:read' },
-        handler: async (_input, ctx) => this.productsRepo.listProducts(ctx.org.id),
+        handler: async (_input, ctx) => {
+          const products = await this.productsRepo.listProducts(ctx.org.id);
+          const summary =
+            products.length === 0
+              ? 'No products in this organization yet.'
+              : `${products.length} product(s): ${products.map((p) => p.productName).join(', ')}`;
+          // No card: the model calls this on every turn, so chips would open every reply.
+          return toolResult(summary);
+        },
       },
       {
         name: 'load_product_context',
@@ -51,7 +76,9 @@ export class OrchestratorAgent extends BaseAgent {
         schema: { productName: z.string() },
         requires: { permission: 'products:read' },
         handler: async (input, ctx) =>
-          this.productContextAgent.run(`Load full knowledge for product: ${input.productName}`, { ctx }),
+          toolResult(
+            await this.productContextAgent.run(`Load full knowledge for product: ${input.productName}`, { ctx }),
+          ),
       },
       {
         name: 'run_prospect_discovery',
@@ -63,11 +90,14 @@ export class OrchestratorAgent extends BaseAgent {
           focus: z.string().optional(),
         },
         handler: async (input, ctx) => {
-          const task = `Find ${input.count ?? 10} prospects for product "${input.productName}"${input.focus ? `. Focus: ${input.focus}` : ''}.`;
-          return this.prospectDiscoveryAgent.run(task, {
+          const productName = input.productName as string;
+          const task = `Find ${input.count ?? 10} prospects for product "${productName}"${input.focus ? `. Focus: ${input.focus}` : ''}.`;
+          const startedAt = new Date();
+          const summary = await this.prospectDiscoveryAgent.run(task, {
             ctx,
-            extraContext: `Product: ${input.productName}`,
+            extraContext: `Product: ${productName}`,
           });
+          return toolResult(summary, await this.leadsCardSince(ctx.org.id, productName, startedAt));
         },
       },
       {
@@ -80,11 +110,14 @@ export class OrchestratorAgent extends BaseAgent {
           domain: z.string().optional(),
         },
         handler: async (input, ctx) => {
-          const task = `Enrich and score company "${input.company}"${input.domain ? ` (${input.domain})` : ''} for product "${input.productName}".`;
-          return this.enrichmentAgent.run(task, {
+          const productName = input.productName as string;
+          const task = `Enrich and score company "${input.company}"${input.domain ? ` (${input.domain})` : ''} for product "${productName}".`;
+          const startedAt = new Date();
+          const summary = await this.enrichmentAgent.run(task, {
             ctx,
-            extraContext: `Product: ${input.productName}`,
+            extraContext: `Product: ${productName}`,
           });
+          return toolResult(summary, await this.leadsCardSince(ctx.org.id, productName, startedAt));
         },
       },
       {
@@ -99,11 +132,15 @@ export class OrchestratorAgent extends BaseAgent {
           channel: z.string().optional(),
         },
         handler: async (input, ctx) => {
-          const task = `Draft outreach for ${input.contactName ?? 'decision maker'} at ${input.company} via ${input.channel ?? 'email'} for product "${input.productName}".`;
-          return this.outreachAgent.run(task, {
+          const productName = input.productName as string;
+          const task = `Draft outreach for ${input.contactName ?? 'decision maker'} at ${input.company} via ${input.channel ?? 'email'} for product "${productName}".`;
+          const startedAt = new Date();
+          const summary = await this.outreachAgent.run(task, {
             ctx,
-            extraContext: `Product: ${input.productName}`,
+            extraContext: `Product: ${productName}`,
           });
+          const drafts = await this.leadsRepo.listOutreachSince(ctx.org.id, productName, startedAt);
+          return toolResult(summary, buildOutreachCard(productName, drafts));
         },
       },
       {
@@ -114,11 +151,16 @@ export class OrchestratorAgent extends BaseAgent {
           productName: z.string(),
           daysBack: z.number().optional(),
         },
-        handler: async (input, ctx) =>
-          this.signalMonitorAgent.run(
-            `Check signals for product "${input.productName}" from the last ${input.daysBack ?? 7} days.`,
+        handler: async (input, ctx) => {
+          const productName = input.productName as string;
+          const startedAt = new Date();
+          const summary = await this.signalMonitorAgent.run(
+            `Check signals for product "${productName}" from the last ${input.daysBack ?? 7} days.`,
             { ctx },
-          ),
+          );
+          const signals = await this.signalsRepo.listCreatedSince(ctx.org.id, productName, startedAt);
+          return toolResult(summary, buildSignalsCard(productName, signals));
+        },
       },
       {
         name: 'save_schedule',
@@ -159,12 +201,17 @@ export class OrchestratorAgent extends BaseAgent {
           productName: z.string(),
           company: z.string(),
         },
-        handler: async (input, ctx) =>
-          this.buyingIntentAgent.analyzeForCompany(
-            ctx,
-            input.productName as string,
-            input.company as string,
-          ),
+        handler: async (input, ctx) => {
+          const productName = input.productName as string;
+          const startedAt = new Date();
+          const company = (input.company as string).trim().toLowerCase();
+          const summary = await this.buyingIntentAgent.analyzeForCompany(ctx, productName, input.company as string);
+          // The lead the run wrote for this company. Leads other runs touched meanwhile are
+          // shown only when none matches by name; no card when the agent saved nothing.
+          const touched = await this.leadsRepo.listTouchedSince(ctx.org.id, productName, startedAt);
+          const own = touched.filter((lead) => lead.company.trim().toLowerCase() === company);
+          return toolResult(summary, buildLeadsCard(productName, own.length > 0 ? own : touched));
+        },
       },
       {
         name: 'run_feedback',
@@ -176,16 +223,34 @@ export class OrchestratorAgent extends BaseAgent {
           inputSummary: z.string(),
           outputSummary: z.string(),
         },
-        handler: async (input, ctx) =>
-          this.feedbackAgent.evaluate(ctx, {
-            productName: input.productName as string,
-            agentType: input.agentType as string,
+        handler: async (input, ctx) => {
+          const productName = input.productName as string;
+          const agentType = input.agentType as string;
+          const startedAt = new Date();
+          const summary = await this.feedbackAgent.evaluate(ctx, {
+            productName,
+            agentType,
             inputSummary: input.inputSummary as string,
             outputSummary: input.outputSummary as string,
-          }),
+          });
+          return toolResult(summary, await this.feedbackCardSince(ctx.org.id, productName, agentType, startedAt));
+        },
       },
     ];
     // Schedules are gated behind SCHEDULES_ENABLED until the scheduler is production-ready.
     return schedulesEnabled ? tools : tools.filter((t) => t.name !== 'save_schedule');
+  }
+
+  /** Card of the product's leads written since `since` (scoped by org, never by model-supplied ids). */
+  private async leadsCardSince(orgId: string, productName: string, since: Date) {
+    const leads = await this.leadsRepo.listTouchedSince(orgId, productName, since);
+    return buildLeadsCard(productName, leads);
+  }
+
+  /** Card of the feedback entry the run saved, if the agent type is valid and a row landed since `since`. */
+  private async feedbackCardSince(orgId: string, productName: string, agentType: string, since: Date) {
+    if (!(Object.values(AgentType) as string[]).includes(agentType)) return undefined;
+    const [latest] = await this.feedbackRepo.getRecentFeedback(orgId, productName, agentType, 1);
+    return buildFeedbackCard(productName, latest && latest.createdAt >= since ? latest : undefined);
   }
 }

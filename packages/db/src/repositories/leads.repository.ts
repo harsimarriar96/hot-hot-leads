@@ -1,3 +1,4 @@
+import { QueryOrder } from '@mikro-orm/core';
 import { EntityManager } from '@mikro-orm/postgresql';
 
 import { Lead } from '../entities/lead.entity';
@@ -132,6 +133,24 @@ export class LeadsRepository {
   /** Leads created in an organization since a point in time (for monthly quotas). */
   async countCreatedSince(orgId: string, since: Date): Promise<number> {
     return this.em.fork().count(Lead, { product: { organization: orgId }, createdAt: { $gte: since } });
+  }
+
+  /** Leads of a product created or updated since `since`, best score first (for result cards). */
+  async listTouchedSince(orgId: string, productName: string, since: Date, limit = 25): Promise<Lead[]> {
+    return this.em.fork().find(
+      Lead,
+      { product: { organization: orgId, name: productName }, updatedAt: { $gte: since } },
+      { orderBy: { score: QueryOrder.DESC_NULLS_LAST, updatedAt: 'DESC' }, limit },
+    );
+  }
+
+  /** Outreach drafts of a product created since `since`, newest first, with the lead populated. */
+  async listOutreachSince(orgId: string, productName: string, since: Date, limit = 25): Promise<OutreachDraft[]> {
+    return this.em.fork().find(
+      OutreachDraft,
+      { lead: { product: { organization: orgId, name: productName } }, createdAt: { $gte: since } },
+      { orderBy: { createdAt: 'DESC' }, limit, populate: ['lead'] },
+    );
   }
 }
 

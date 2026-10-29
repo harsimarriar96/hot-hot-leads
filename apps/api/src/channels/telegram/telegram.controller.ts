@@ -44,7 +44,11 @@ export class TelegramController {
     } catch (err) {
       this.logger.error(`Chat handling failed: ${(err as Error).message}`);
       try {
-        await this.telegram.send({ chatId, text: '⚠️ Something went wrong. Please try again.' });
+        await this.telegram.send({
+          chatId,
+          text: '⚠️ Something went wrong. Please try again.',
+          format: 'plain',
+        });
       } catch (sendErr) {
         this.logger.error(`Could not deliver error reply: ${(sendErr as Error).message}`);
       }
