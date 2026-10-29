@@ -21,3 +21,6 @@ coverage/
 # Local-only
 docker-compose.override.yml
 video/
+
+# graphify knowledge graph (regenerate with `graphify update .`)
+graphify-out/

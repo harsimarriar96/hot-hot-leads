@@ -245,3 +245,15 @@ HOST, PORT, LOG_LEVEL         # LOG_LEVEL: debug | info | warn | error
 - **WhatsApp `chatId` == phone number** — Unlike Telegram, there is no separate chat ID.
 - **Signals carry a review status** (`pending|approved|rejected|snoozed`, new rows default to `pending`); only approved signals feed buying intent (`get_signals_for_company`), the web dashboard counts pending ones, and `signal-monitor`'s dedupe still sees every status.
 - **Lint/test are CI gates** — ESLint 9 flat configs live in each package (`eslint.config.mjs`, extending `packages/config/eslint/base.mjs`); API unit tests are pure (no DB, repositories stubbed) and run with `jest --passWithNoTests`. Tests that import an agent must `jest.mock('@anthropic-ai/claude-agent-sdk')` because the SDK ships as ESM. `.github/workflows/ci.yml` runs typecheck, lint, build, test and a Docker image build.
+
+## graphify
+
+This project has a knowledge graph at graphify-out/ with god nodes, community structure, and cross-file relationships.
+
+Rules:
+- For codebase questions, first run `graphify query "<question>"` when graphify-out/graph.json exists. Use `graphify path "<A>" "<B>"` for relationships and `graphify explain "<concept>"` for focused concepts. These return a scoped subgraph, usually much smaller than GRAPH_REPORT.md or raw grep output.
+- If graphify-out/wiki/index.md exists, use it for broad navigation instead of raw source browsing.
+- Read graphify-out/GRAPH_REPORT.md only for broad architecture review or when query/path/explain do not surface enough context.
+- After modifying code, run `graphify update .` to keep the graph current (AST-only, no API cost).
+- `graphify-out/` is gitignored. On a fresh clone (or if `graphify-out/graph.json` is missing) run `uv tool install graphifyy` once, then `graphify update .` (about 2 seconds, no API cost).
+- Hook lines in `.claude/settings.json` nudge toward the graph before Grep/Glob/Read of source files; `/graphify .` runs the full skill (LLM pass over docs), which is not needed for code-only changes.
