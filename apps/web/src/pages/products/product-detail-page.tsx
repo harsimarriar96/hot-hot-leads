@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { ChevronLeft } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -20,8 +21,9 @@ import { ProductOverviewTab } from './tabs/overview-tab';
 import { ProductLeadsTab } from './tabs/leads-tab';
 import { ProductSignalsTab } from './tabs/signals-tab';
 import { ProductChatTab } from './tabs/chat-tab';
+import { ProductStrategiesTab } from './tabs/strategies-tab';
 
-const TABS = ['overview', 'leads', 'signals', 'chat'] as const;
+const TABS = ['overview', 'leads', 'signals', 'chat', 'strategies'] as const;
 type Tab = (typeof TABS)[number];
 
 const isTab = (v: string | null | undefined): v is Tab => TABS.includes(v as Tab);
@@ -70,6 +72,7 @@ export function ProductDetailPage() {
     leads: true,
     signals: signalsEnabled,
     chat: chatEnabled,
+    strategies: true,
   };
 
   // Links to the same product with a different ?tab= do not remount the page.
@@ -209,7 +212,7 @@ export function ProductDetailPage() {
         </Can>
       </header>
 
-      <nav className="flex gap-1 border-b border-[var(--border)] mb-5">
+      <nav className="flex gap-1 overflow-x-auto border-b border-[var(--border)] mb-5">
         {TABS.map((t) => {
           const button = (
             <button
@@ -217,13 +220,14 @@ export function ProductDetailPage() {
               type="button"
               onClick={() => switchTab(t)}
               disabled={!tabEnabled[t]}
-              className={`px-3 py-2 text-sm capitalize -mb-px border-b-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+              className={`inline-flex items-center gap-1.5 shrink-0 px-3 py-2 text-sm capitalize -mb-px border-b-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
                 tab === t
                   ? 'border-[var(--accent)] text-[var(--text)] font-medium'
                   : 'border-transparent text-[var(--text-tertiary)] hover:text-[var(--text)]'
               }`}
             >
               {t}
+              {t === 'strategies' && <Badge>Soon</Badge>}
             </button>
           );
           return !tabEnabled[t] ? (
@@ -269,6 +273,7 @@ export function ProductDetailPage() {
           ) : (
             <FeatureUnavailable feature="chat" />
           ))}
+        {tab === 'strategies' && <ProductStrategiesTab />}
       </div>
 
       <DeleteProductDialog
