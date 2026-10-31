@@ -1,11 +1,18 @@
 import { useEffect, useState } from 'react';
-import { Plus, Trash2 } from 'lucide-react';
+import { Check, Plus, Trash2 } from 'lucide-react';
 import type { DraftField } from '@hothotleads/types';
 import { AiDraft, draftToChips } from '@/components/ai-draft';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label, FieldGroup } from '@/components/ui/label';
 import { ChipInput } from '@/components/ui/chip-input';
+import {
+  ReadinessCard,
+  productReadiness,
+  sectionTarget,
+  type ReadinessSection,
+} from '@/components/product-readiness';
+import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
 import { productsApi, type ProductDetail } from '@/lib/products';
 
@@ -23,6 +30,12 @@ export function ProductOverviewTab({ product, onChanged, readOnly = false }: Pro
   const [generalInfo, setGeneralInfo] = useState(product.generalInfo);
   const [salesStrategy, setSalesStrategy] = useState(product.salesStrategy);
   const [pricing, setPricing] = useState(product.pricing);
+  const { hasFeature } = useAuth();
+  const readiness = productReadiness(product, hasFeature);
+  const complete = (section: ReadinessSection) => {
+    const items = readiness.filter((item) => item.section === section);
+    return items.length > 0 && items.every((item) => item.done);
+  };
 
   const dirty =
     name !== product.name ||
@@ -68,131 +81,139 @@ export function ProductOverviewTab({ product, onChanged, readOnly = false }: Pro
   }
 
   return (
-    <div className="space-y-10 overflow-y-auto pb-6">
-      <section className="space-y-3">
-        <SectionHeading>Basics</SectionHeading>
-        <div className="space-y-3">
-          <FieldGroup>
-            <Label htmlFor="pv-name">Name</Label>
-            <Input
-              id="pv-name"
-              value={name}
-              onChange={(e) => bindSet(setName)(e.target.value)}
-              maxLength={80}
-              disabled={readOnly}
-            />
-          </FieldGroup>
-          <FieldGroup>
-            <Label htmlFor="pv-info">General info</Label>
-            <AiDraft field="generalInfo" productId={product.id} value={generalInfo} onDraft={bindSet(setGeneralInfo)} context={draftContext} disabled={readOnly}>
-              <textarea
-                id="pv-info"
-                rows={3}
-                value={generalInfo}
-                onChange={(e) => bindSet(setGeneralInfo)(e.target.value)}
+    <div className="grid grid-cols-1 items-start gap-6 pb-6 lg:grid-cols-[minmax(0,1fr)_18rem]">
+      <div className="lg:sticky lg:top-4 lg:order-last lg:max-h-[calc(100dvh-2rem)] lg:overflow-y-auto">
+        <ReadinessCard items={readiness} />
+      </div>
+      <div className="min-w-0 space-y-4">
+        <section className={SECTION}>
+          <SectionHeading done={complete('basics')}>Basics</SectionHeading>
+          <div className="space-y-3">
+            <FieldGroup>
+              <Label htmlFor="pv-name">Name</Label>
+              <Input
+                id="pv-name"
+                value={name}
+                onChange={(e) => bindSet(setName)(e.target.value)}
+                maxLength={80}
                 disabled={readOnly}
-                className="w-full rounded-md border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm focus:outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--ring)]"
               />
-            </AiDraft>
-          </FieldGroup>
-          <FieldGroup>
-            <Label htmlFor="pv-strategy">Sales strategy</Label>
-            <AiDraft field="salesStrategy" productId={product.id} value={salesStrategy} onDraft={bindSet(setSalesStrategy)} context={draftContext} disabled={readOnly}>
-              <textarea
-                id="pv-strategy"
-                rows={4}
-                value={salesStrategy}
-                onChange={(e) => bindSet(setSalesStrategy)(e.target.value)}
-                disabled={readOnly}
-                className="w-full rounded-md border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm focus:outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--ring)]"
-              />
-            </AiDraft>
-          </FieldGroup>
-          <FieldGroup>
-            <Label htmlFor="pv-pricing">Pricing</Label>
-            <AiDraft field="pricing" productId={product.id} value={pricing} onDraft={bindSet(setPricing)} context={draftContext} disabled={readOnly}>
-              <textarea
-                id="pv-pricing"
-                rows={3}
-                value={pricing}
-                onChange={(e) => bindSet(setPricing)(e.target.value)}
-                disabled={readOnly}
-                className="w-full rounded-md border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm focus:outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--ring)]"
-              />
-            </AiDraft>
-          </FieldGroup>
-          {error && <p className="text-sm text-[var(--error)]">{error}</p>}
-          {!readOnly && (
-            <div className="flex justify-end">
-              <Button onClick={saveBasics} disabled={saving}>
-                {saving ? 'Saving…' : 'Save'}
-              </Button>
-            </div>
-          )}
-        </div>
-      </section>
+            </FieldGroup>
+            <FieldGroup>
+              <Label htmlFor="pv-info">General info</Label>
+              <AiDraft field="generalInfo" productId={product.id} value={generalInfo} onDraft={bindSet(setGeneralInfo)} context={draftContext} disabled={readOnly}>
+                <textarea
+                  id="pv-info"
+                  rows={3}
+                  value={generalInfo}
+                  onChange={(e) => bindSet(setGeneralInfo)(e.target.value)}
+                  disabled={readOnly}
+                  className="w-full rounded-md border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm focus:outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--ring)]"
+                />
+              </AiDraft>
+            </FieldGroup>
+            <FieldGroup>
+              <Label htmlFor="pv-strategy">Sales strategy</Label>
+              <AiDraft field="salesStrategy" productId={product.id} value={salesStrategy} onDraft={bindSet(setSalesStrategy)} context={draftContext} disabled={readOnly}>
+                <textarea
+                  id="pv-strategy"
+                  rows={4}
+                  value={salesStrategy}
+                  onChange={(e) => bindSet(setSalesStrategy)(e.target.value)}
+                  disabled={readOnly}
+                  className="w-full rounded-md border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm focus:outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--ring)]"
+                />
+              </AiDraft>
+            </FieldGroup>
+            <FieldGroup>
+              <Label htmlFor="pv-pricing">Pricing</Label>
+              <AiDraft field="pricing" productId={product.id} value={pricing} onDraft={bindSet(setPricing)} context={draftContext} disabled={readOnly}>
+                <textarea
+                  id="pv-pricing"
+                  rows={3}
+                  value={pricing}
+                  onChange={(e) => bindSet(setPricing)(e.target.value)}
+                  disabled={readOnly}
+                  className="w-full rounded-md border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm focus:outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--ring)]"
+                />
+              </AiDraft>
+            </FieldGroup>
+            {error && <p className="text-sm text-[var(--error)]">{error}</p>}
+            {!readOnly && (
+              <div className="flex justify-end">
+                <Button onClick={saveBasics} disabled={saving}>
+                  {saving ? 'Saving…' : 'Save'}
+                </Button>
+              </div>
+            )}
+          </div>
+        </section>
 
-      <AgentSection product={product} onChanged={onChanged} readOnly={readOnly} />
-      <IcpSection product={product} onChanged={onChanged} readOnly={readOnly} />
-      <ChildEditorSection
-        product={product}
-        onChanged={onChanged}
-        readOnly={readOnly}
-        kind="sales-channels"
-        heading="Sales channels"
-        items={product.salesChannels.map((c) => ({
-          id: c.id,
-          fields: { name: c.name, description: c.description, template: c.template ?? '' },
-        }))}
-        fieldKeys={['name', 'description', 'template']}
-        fieldLabels={{ name: 'Name', description: 'Description', template: 'Template' }}
-        draftFields={{ name: 'channelName', description: 'channelDescription', template: 'channelTemplate' }}
-      />
-      <ChildEditorSection
-        product={product}
-        onChanged={onChanged}
-        readOnly={readOnly}
-        kind="sources"
-        heading="Sources"
-        items={product.sources.map((s) => ({
-          id: s.id,
-          fields: { name: s.name, url: s.url, description: s.description, type: s.type },
-        }))}
-        fieldKeys={['name', 'url', 'description']}
-        fieldLabels={{ name: 'Name', url: 'URL', description: 'Description' }}
-        draftFields={{ name: 'sourceName', description: 'sourceDescription' }}
-      />
-      <ChildEditorSection
-        product={product}
-        onChanged={onChanged}
-        readOnly={readOnly}
-        kind="predefined-prospects"
-        heading="Predefined prospects"
-        items={product.predefinedProspects.map((p) => ({
-          id: p.id,
-          fields: {
-            company: p.company,
-            domain: p.domain,
-            industry: p.industry,
-            companySize: p.companySize,
-            fundingStage: p.fundingStage,
-            icpFitNotes: p.icpFitNotes,
-          },
-        }))}
-        fieldKeys={['company', 'domain', 'industry', 'icpFitNotes']}
-        fieldLabels={{
-          company: 'Company',
-          domain: 'Domain',
-          industry: 'Industry',
-          icpFitNotes: 'ICP fit notes',
-        }}
-        draftFields={{ industry: 'prospectIndustry', icpFitNotes: 'prospectFitNotes' }}
-      />
+        <IcpSection product={product} onChanged={onChanged} readOnly={readOnly} done={complete('icp')} />
+        <ChildEditorSection
+          product={product}
+          onChanged={onChanged}
+          readOnly={readOnly}
+          kind="sales-channels"
+          done={complete('sales-channels')}
+          heading="Sales channels"
+          items={product.salesChannels.map((c) => ({
+            id: c.id,
+            fields: { name: c.name, description: c.description, template: c.template ?? '' },
+          }))}
+          fieldKeys={['name', 'description', 'template']}
+          fieldLabels={{ name: 'Name', description: 'Description', template: 'Template' }}
+          draftFields={{ name: 'channelName', description: 'channelDescription', template: 'channelTemplate' }}
+        />
+        <ChildEditorSection
+          product={product}
+          onChanged={onChanged}
+          readOnly={readOnly}
+          kind="sources"
+          done={complete('sources')}
+          heading="Sources"
+          items={product.sources.map((s) => ({
+            id: s.id,
+            fields: { name: s.name, url: s.url, description: s.description, type: s.type },
+          }))}
+          fieldKeys={['name', 'url', 'description']}
+          fieldLabels={{ name: 'Name', url: 'URL', description: 'Description' }}
+          draftFields={{ name: 'sourceName', description: 'sourceDescription' }}
+        />
+        <ChildEditorSection
+          product={product}
+          onChanged={onChanged}
+          readOnly={readOnly}
+          kind="predefined-prospects"
+          done={complete('predefined-prospects')}
+          heading="Predefined prospects"
+          items={product.predefinedProspects.map((p) => ({
+            id: p.id,
+            fields: {
+              company: p.company,
+              domain: p.domain,
+              industry: p.industry,
+              companySize: p.companySize,
+              fundingStage: p.fundingStage,
+              icpFitNotes: p.icpFitNotes,
+            },
+          }))}
+          fieldKeys={['company', 'domain', 'industry', 'icpFitNotes']}
+          fieldLabels={{
+            company: 'Company',
+            domain: 'Domain',
+            industry: 'Industry',
+            icpFitNotes: 'ICP fit notes',
+          }}
+          draftFields={{ industry: 'prospectIndustry', icpFitNotes: 'prospectFitNotes' }}
+        />
+        <AgentSection product={product} onChanged={onChanged} readOnly={readOnly} />
+      </div>
     </div>
   );
 }
 
-function IcpSection({ product, onChanged, readOnly = false }: Props) {
+function IcpSection({ product, onChanged, readOnly = false, done }: Props & { done: boolean }) {
   const initial = product.icp;
   const [industries, setIndustries] = useState<string[]>(initial?.targetIndustries ?? []);
   const [sizes, setSizes] = useState<string[]>(initial?.companySizes ?? []);
@@ -231,8 +252,8 @@ function IcpSection({ product, onChanged, readOnly = false }: Props) {
   }
 
   return (
-    <section className="space-y-3">
-      <SectionHeading>ICP</SectionHeading>
+    <section className={SECTION}>
+      <SectionHeading done={done}>ICP</SectionHeading>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3">
         <FieldGroup>
           <Label htmlFor="icp-industries">Target industries</Label>
@@ -347,6 +368,7 @@ interface ChildEditorProps {
   onChanged: () => void;
   readOnly?: boolean;
   kind: 'sales-channels' | 'sources' | 'predefined-prospects';
+  done: boolean;
   heading: string;
   items: ChildItem[];
   fieldKeys: string[];
@@ -356,7 +378,7 @@ interface ChildEditorProps {
 }
 
 function ChildEditorSection(props: ChildEditorProps) {
-  const { product, onChanged, kind, heading, items, fieldKeys, fieldLabels, draftFields, readOnly = false } = props;
+  const { product, onChanged, kind, done, heading, items, fieldKeys, fieldLabels, draftFields, readOnly = false } = props;
   const [adding, setAdding] = useState(false);
   const [draft, setDraft] = useState<Record<string, string>>({});
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -404,9 +426,9 @@ function ChildEditorSection(props: ChildEditorProps) {
   }
 
   return (
-    <section className="space-y-3">
+    <section id={sectionTarget(kind)} tabIndex={-1} className={SECTION}>
       <div className="flex items-center justify-between">
-        <SectionHeading>{heading}</SectionHeading>
+        <SectionHeading done={done}>{heading}</SectionHeading>
         {!readOnly && (
           <Button variant="ghost" size="sm" onClick={() => setAdding(true)}>
             <Plus className="h-3.5 w-3.5" />
@@ -616,7 +638,7 @@ function AgentSection({ product, onChanged, readOnly = false }: Props) {
   }
 
   return (
-    <section className="space-y-3">
+    <section className={SECTION}>
       <SectionHeading>Agent</SectionHeading>
       <p className="text-xs text-[var(--text-tertiary)] -mt-1">
         Per-product overrides applied to every chat run for this product.
@@ -698,6 +720,14 @@ function AgentSection({ product, onChanged, readOnly = false }: Props) {
   );
 }
 
-function SectionHeading({ children }: { children: React.ReactNode }) {
-  return <h2 className="text-sm font-semibold text-[var(--text)]">{children}</h2>;
+const SECTION =
+  'space-y-3 rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4 focus:outline-none sm:p-5';
+
+function SectionHeading({ children, done = false }: { children: React.ReactNode; done?: boolean }) {
+  return (
+    <h2 className="flex items-center gap-1.5 text-sm font-semibold text-[var(--text)]">
+      {children}
+      {done && <Check className="h-3.5 w-3.5 text-[var(--success)]" aria-label="Complete" />}
+    </h2>
+  );
 }
