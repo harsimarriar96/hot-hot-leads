@@ -91,6 +91,13 @@ export class ExaService {
     });
   }
 
+  /** Page text for a URL, fetched by Exa so this server never requests a user-supplied address. */
+  async getPageText(url: string, maxCharacters = 8000): Promise<string | null> {
+    this.logger.debug(`Reading page: ${url}`);
+    const result = await this.exa.getContents([url], { text: { maxCharacters } });
+    return this.formatResults(result)[0]?.text?.trim() || null;
+  }
+
   private formatResults(raw: any): SearchResult[] {
     return (raw.results ?? []).map((r: any) => ({
       title: r.title ?? '',

@@ -247,3 +247,4 @@ export type {
 } from './chat';
 export { CHAT_RESULT_CARD_KINDS, isChatToolResult } from './chat';
 export type { DashboardOverview } from './dashboard';
+export type { ProductSuggestions, SuggestionList } from './product-suggestions';

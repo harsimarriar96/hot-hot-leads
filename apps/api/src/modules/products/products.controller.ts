@@ -47,6 +47,7 @@ import { Auth } from '../auth/auth.decorator';
 import { RequirePermission } from '../auth/access.decorators';
 import { EntitlementsService } from '../auth/entitlements.service';
 import { requireOrg, type TenantContext } from '../auth/tenant-context';
+import { ProductSuggestionsService } from './product-suggestions.service';
 
 class IcpDto {
   @IsArray()
@@ -60,6 +61,11 @@ class IcpDto {
   @IsArray()
   @IsString({ each: true })
   geographies: string[] = [];
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  fundingStages?: string[];
 
   @IsOptional()
   @IsString()
@@ -82,6 +88,22 @@ class CreateProductDto {
   @ValidateNested()
   @Type(() => IcpDto)
   icp!: IcpDto;
+}
+
+class SuggestProductDto {
+  @IsString()
+  @Length(1, 80)
+  name!: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(300)
+  website?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(2000)
+  description?: string;
 }
 
 class UpdateProductDto {
@@ -220,6 +242,7 @@ export class ProductsController {
   constructor(
     private readonly em: EntityManager,
     private readonly entitlements: EntitlementsService,
+    private readonly suggestions: ProductSuggestionsService,
   ) {}
 
   @Get()
@@ -317,8 +340,18 @@ export class ProductsController {
     const { org } = ctx;
     await this.entitlements.assertCanCreateProduct(ctx);
     const em = this.em.fork();
-    const existing = await em.findOne(Product, { organization: org.id, name: dto.name });
-    if (existing) throw new ConflictException(`Product "${dto.name}" already exists`);
+    const slug = slugify(dto.name);
+    const existing = await em.findOne(Product, {
+      organization: org.id,
+      $or: [{ name: dto.name }, { slug }],
+    });
+    if (existing) {
+      throw new ConflictException(
+        existing.name === dto.name
+          ? `Product "${dto.name}" already exists`
+          : `"${dto.name}" is too close to the existing product "${existing.name}"`,
+      );
+    }
 
     const product = await em.transactional(async (tx) => {
       const p = tx.create(
@@ -326,7 +359,7 @@ export class ProductsController {
         {
           organization: tx.getReference(Organization, org.id),
           name: dto.name,
-          slug: slugify(dto.name),
+          slug,
           generalInfo: dto.generalInfo,
         },
         { partial: true },
@@ -338,6 +371,7 @@ export class ProductsController {
           targetIndustries: dto.icp.targetIndustries ?? [],
           companySizes: dto.icp.companySizes ?? [],
           geographies: dto.icp.geographies ?? [],
+          fundingStages: dto.icp.fundingStages ?? [],
           notes: dto.icp.notes,
         },
         { partial: true },
@@ -346,6 +380,13 @@ export class ProductsController {
       return p;
     });
     return { id: product.id, name: product.name, slug: product.slug };
+  }
+
+  @Post('suggestions')
+  @HttpCode(200)
+  @RequirePermission('agents:run')
+  suggest(@Auth() auth: TenantContext, @Body() dto: SuggestProductDto) {
+    return this.suggestions.suggest(requireOrg(auth), dto);
   }
 
   @Patch(':id')

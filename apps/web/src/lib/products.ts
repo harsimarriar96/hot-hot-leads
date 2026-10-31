@@ -42,7 +42,8 @@ export interface ProductDetail {
   }>;
 }
 
-import { apiJson, deleteJson } from './http';
+import type { ProductSuggestions } from '@hothotleads/types';
+import { apiJson, deleteJson, postJson } from './http';
 
 const jsonOrThrow = apiJson;
 
@@ -52,13 +53,21 @@ export const productsApi = {
   create: (body: {
     name: string;
     generalInfo?: string;
-    icp: { targetIndustries: string[]; companySizes: string[]; geographies: string[]; notes?: string };
+    icp: {
+      targetIndustries: string[];
+      companySizes: string[];
+      geographies: string[];
+      fundingStages: string[];
+      notes?: string;
+    };
   }) =>
     jsonOrThrow<{ id: string; name: string; slug: string }>(`/api/products`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
     }),
+  suggest: (body: { name: string; website?: string; description?: string }) =>
+    postJson<ProductSuggestions>('/api/products/suggestions', body),
   update: (
     id: string,
     body: {

@@ -97,6 +97,11 @@ export class FirstProductIcpDto {
   geographies: string[] = [];
 
   @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  fundingStages?: string[];
+
+  @IsOptional()
   @IsString()
   @MaxLength(2000)
   notes?: string;

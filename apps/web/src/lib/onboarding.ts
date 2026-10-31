@@ -34,6 +34,7 @@ export const onboardingApi = {
       targetIndustries: string[];
       companySizes: string[];
       geographies: string[];
+      fundingStages: string[];
       notes?: string;
     };
   }) => postJson('/api/onboarding/first-product', body),

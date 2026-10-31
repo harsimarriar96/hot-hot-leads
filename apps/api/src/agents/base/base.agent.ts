@@ -23,6 +23,8 @@ export interface AgentRunOptions {
   model?: string;
   extraContext?: string;
   maxTurns?: number;
+  /** Skips model thinking. Short structured replies stay fast: thinking is on by default and can multiply the run time. */
+  disableThinking?: boolean;
   /** Prior turns of the conversation this run continues. Rendered into the system overlay. */
   history?: HistoryTurn[];
 }
@@ -144,6 +146,7 @@ export abstract class BaseAgent {
         tools: [],
         permissionMode: 'bypassPermissions',
         maxTurns: options.maxTurns ?? DEFAULT_MAX_TURNS,
+        ...(options.disableThinking ? { thinking: { type: 'disabled' as const } } : {}),
       },
     });
 

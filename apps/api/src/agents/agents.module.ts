@@ -13,6 +13,7 @@ import { OutreachAgent } from './outreach/outreach.agent';
 import { SignalMonitorAgent } from './signal-monitor/signal-monitor.agent';
 import { BuyingIntentAgent } from './buying-intent/buying-intent.agent';
 import { FeedbackAgent } from './feedback/feedback.agent';
+import { ProductSuggestionAgent } from './product-suggestion/product-suggestion.agent';
 
 const AGENTS = [
   OrchestratorAgent,
@@ -24,6 +25,7 @@ const AGENTS = [
   SignalMonitorAgent,
   BuyingIntentAgent,
   FeedbackAgent,
+  ProductSuggestionAgent,
 ];
 
 @Module({

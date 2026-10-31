@@ -76,7 +76,7 @@ apps/
 │       ├── modules/organization/   # Organization service + members/invitations API
 │       ├── modules/platform/       # Super-admin console API (/api/platform/*)
 │       ├── common/types/           # Shared TypeScript interfaces
-│       ├── agents/                 # BaseAgent + 8 specialized agents
+│       ├── agents/                 # BaseAgent + specialized agents
 │       ├── channels/               # Telegram + WhatsApp webhook controllers
 │       ├── integrations/           # Exa / Tavily / Perplexity web-research clients
 │       ├── db/db.module.ts         # MikroORM wiring + repository providers
@@ -102,7 +102,7 @@ turbo.json                          # pipeline: build, dev, lint, typecheck, tes
 
 ## Agent Architecture
 
-8 specialized agents, all extending `BaseAgent` (which owns the Claude tool-use loop):
+9 specialized agents, all extending `BaseAgent` (which owns the Claude tool-use loop):
 
 | Agent | Role | Key Tools |
 |-------|------|-----------|
@@ -114,6 +114,7 @@ turbo.json                          # pipeline: build, dev, lint, typecheck, tes
 | **OutreachAgent** | Drafts channel-specific personalized messages referencing signals | get_lead, save_outreach |
 | **SignalMonitorAgent** | Monitors Sources for new GTM signals and saves them to Postgres | search_signals, save_signal |
 | **FeedbackAgent** | Evaluates output quality (0–10) and writes to Feedback Log | get_recent_feedback, save_feedback |
+| **ProductSuggestionAgent** | Drafts a new product's description and ICP as JSON from its website text or description (fast model, one turn) | none |
 
 ### Feedback Loop
 Every significant output (lead batch, outreach draft) automatically triggers **FeedbackAgent** via `OrchestratorAgent.executeTool('run_feedback', ...)`. Feedback is persisted in the `feedback_entries` table (scoped by `product_id`). Run `/feedback-review` to surface patterns and ICP refinement suggestions.
@@ -183,6 +184,7 @@ Conversations are organization-scoped rows in `chats` (optional `product_id`, `t
 - **Model memory:** every turn passes the conversation's prior turns as `AgentRunOptions.history` (`chat-history.ts` reduces them to text, `agents/base/history.ts` renders at most 20 turns / 4k chars each / 24k total into the system overlay, after the canonical prompt). Only the orchestrator's top-level run gets history.
 - **Streaming agent:** [BaseAgent.runStream](apps/api/src/agents/base/base.agent.ts) maps the Claude Agent SDK's async iterator into `message_start`, `text_delta`, `tool_use_start`, `tool_use_result`, `message_done`, `error`. Non-streaming `run()` drains the generator.
 - **Channel sync:** `ChatService.handleIncoming` is used by both Telegram and WhatsApp handlers. Channels are still deployment-wide (env credentials), so a message is routed to the organization only when the deployment hosts exactly one (`ChatService.resolveOrgForSender`) and acts as that organization's earliest owner. When `organizations.sync_channel_chats = true` (default) and a product is resolved, the exchange lands in the product's newest conversation that already has messages from that channel, else the product's newest conversation, else a new one titled `<Product> · <channel>`.
+- **New product journey:** `components/new-product-flow.tsx` is the two-step flow shared by the products page and onboarding. `POST /api/products/suggestions { name, website?, description? }` (`agents:run`) returns `ProductSuggestions` (`packages/types/src/product-suggestions.ts`) from `modules/products/product-suggestions.service.ts`: Exa reads the website, a failed read falls back to the description, and a 400 means the input needs fixing. Any other failure lets the user fill the form in by hand. The website is not stored.
 - **Product management:** `/api/products` — list / get / create / patch / delete. Delete cascades to leads, outreach drafts, signals, schedules, feedback, and chats via the DB FKs. `lastChatActivityAt` reads `chats.last_message_at`.
 - **Rendering:** assistant text is markdown, rendered in the web by `components/chat/markdown.tsx` (GFM, HTML skipped, links allow-listed). Orchestrator run tools return a `ChatToolResult { summary, card? }` (`packages/types/src/chat.ts`); cards (leads / signals / outreach / feedback) are built server-side in `agents/orchestrator/result-cards.ts` from rows written since the tool started and rendered by `components/chat/result-card.tsx`. While a turn runs, `lib/tool-labels.ts` turns each tool call into a plain sentence shown as a shimmer line in the bubble and in the activity strip. The orchestrator prompt's "Response Format" section and the delivery hints in `chat.service.ts` (`WEB_DELIVERY` / `channelDelivery`) decide how much the text repeats what the cards already show.
 - **Client disconnect:** the SSE handler continues the orchestrator run to completion even if the client aborts mid-stream, so the assistant message is always persisted in full.

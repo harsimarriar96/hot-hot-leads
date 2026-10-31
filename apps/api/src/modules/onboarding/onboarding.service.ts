@@ -150,6 +150,7 @@ export class OnboardingService {
           targetIndustries: dto.icp.targetIndustries ?? [],
           companySizes: dto.icp.companySizes ?? [],
           geographies: dto.icp.geographies ?? [],
+          fundingStages: dto.icp.fundingStages ?? [],
           notes: dto.icp.notes,
         },
         { partial: true },
