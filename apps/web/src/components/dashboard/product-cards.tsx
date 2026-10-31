@@ -91,12 +91,13 @@ function ProductCard({ product }: { product: ProductRow }) {
   );
 }
 
-export function ProductCardGrid({ products }: { products: ProductRow[] }) {
+export function ProductCardGrid({ products, trailing }: { products: ProductRow[]; trailing?: React.ReactNode }) {
   return (
     <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
       {products.map((p) => (
         <ProductCard key={p.id} product={p} />
       ))}
+      {trailing}
     </ul>
   );
 }

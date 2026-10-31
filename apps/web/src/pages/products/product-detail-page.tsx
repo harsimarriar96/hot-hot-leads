@@ -50,6 +50,7 @@ export function ProductDetailPage() {
   const qc = useQueryClient();
   const toast = useToast();
   const [searchParams, setSearchParams] = useSearchParams();
+  const [chatPrompt, setChatPrompt] = useState<string | null>(null);
   const paramTab = searchParams.get('tab');
   // A valid ?tab= wins over the remembered tab (and is remembered itself), so dashboard
   // deep links land where they say.
@@ -130,6 +131,12 @@ export function ProductDetailPage() {
     const params = new URLSearchParams(searchParams);
     params.set('tab', next);
     setSearchParams(params, { replace: true });
+  }
+
+  // The run happens in chat, where its progress is visible as it goes.
+  function generateLeads(productName: string) {
+    setChatPrompt(`generate 5 leads for ${productName}`);
+    switchTab('chat');
   }
 
   if (!productId) return null;
@@ -242,7 +249,9 @@ export function ProductDetailPage() {
             }}
           />
         )}
-        {tab === 'leads' && <ProductLeadsTab productName={data.name} product={data} />}
+        {tab === 'leads' && (
+          <ProductLeadsTab productName={data.name} product={data} onGenerate={() => generateLeads(data.name)} />
+        )}
         {tab === 'signals' &&
           (signalsEnabled ? (
             <ProductSignalsTab productName={data.name} />
@@ -251,7 +260,12 @@ export function ProductDetailPage() {
           ))}
         {tab === 'chat' &&
           (chatEnabled ? (
-            <ProductChatTab productId={data.id} productName={data.name} />
+            <ProductChatTab
+              productId={data.id}
+              productName={data.name}
+              autoPrompt={chatPrompt}
+              onAutoPromptSent={() => setChatPrompt(null)}
+            />
           ) : (
             <FeatureUnavailable feature="chat" />
           ))}

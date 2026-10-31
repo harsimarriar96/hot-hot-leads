@@ -18,10 +18,12 @@ import {
   IsArray,
   IsDefined,
   IsEnum,
+  IsIn,
   IsInt,
   IsObject,
   IsOptional,
   IsString,
+  IsUUID,
   Length,
   Max,
   MaxLength,
@@ -42,12 +44,13 @@ import {
   SourceType,
   slugify,
 } from '@hothotleads/db';
+import type { DraftField } from '@hothotleads/types';
 
 import { Auth } from '../auth/auth.decorator';
 import { RequirePermission } from '../auth/access.decorators';
 import { EntitlementsService } from '../auth/entitlements.service';
 import { requireOrg, type TenantContext } from '../auth/tenant-context';
-import { ProductSuggestionsService } from './product-suggestions.service';
+import { DRAFT_FIELDS, ProductSuggestionsService } from './product-suggestions.service';
 
 class IcpDto {
   @IsArray()
@@ -104,6 +107,19 @@ class SuggestProductDto {
   @IsString()
   @MaxLength(2000)
   description?: string;
+}
+
+class DraftFieldDto {
+  @IsIn(Object.keys(DRAFT_FIELDS))
+  field!: DraftField;
+
+  @IsOptional()
+  @IsUUID()
+  productId?: string;
+
+  @IsOptional()
+  @IsObject()
+  context?: Record<string, string>;
 }
 
 class UpdateProductDto {
@@ -387,6 +403,13 @@ export class ProductsController {
   @RequirePermission('agents:run')
   suggest(@Auth() auth: TenantContext, @Body() dto: SuggestProductDto) {
     return this.suggestions.suggest(requireOrg(auth), dto);
+  }
+
+  @Post('draft-field')
+  @HttpCode(200)
+  @RequirePermission('agents:run')
+  draftField(@Auth() auth: TenantContext, @Body() dto: DraftFieldDto) {
+    return this.suggestions.draftField(requireOrg(auth), dto);
   }
 
   @Patch(':id')

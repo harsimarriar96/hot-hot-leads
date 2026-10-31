@@ -14,6 +14,7 @@ import { SignalMonitorAgent } from './signal-monitor/signal-monitor.agent';
 import { BuyingIntentAgent } from './buying-intent/buying-intent.agent';
 import { FeedbackAgent } from './feedback/feedback.agent';
 import { ProductSuggestionAgent } from './product-suggestion/product-suggestion.agent';
+import { ProductDraftAgent } from './product-suggestion/product-draft.agent';
 
 const AGENTS = [
   OrchestratorAgent,
@@ -26,6 +27,7 @@ const AGENTS = [
   BuyingIntentAgent,
   FeedbackAgent,
   ProductSuggestionAgent,
+  ProductDraftAgent,
 ];
 
 @Module({

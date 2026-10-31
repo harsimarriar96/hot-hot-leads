@@ -4,11 +4,17 @@ jest.mock('@anthropic-ai/claude-agent-sdk', () => ({
   tool: jest.fn(),
 }));
 
-import { BadGatewayException, BadRequestException } from '@nestjs/common';
+import { BadGatewayException, BadRequestException, NotFoundException } from '@nestjs/common';
 
-import { ProductSuggestionsService, normalizeWebsite, parseSuggestions } from './product-suggestions.service';
+import {
+  DRAFT_FIELDS,
+  ProductSuggestionsService,
+  describeProduct,
+  normalizeWebsite,
+  parseSuggestions,
+} from './product-suggestions.service';
 
-const ctx = {} as never;
+const ctx = { org: { id: 'org-1' }, role: 'member' } as never;
 
 const reply = (over: Record<string, unknown> = {}) =>
   JSON.stringify({
@@ -21,10 +27,18 @@ const reply = (over: Record<string, unknown> = {}) =>
     ...over,
   });
 
-function harness(agentReply: Promise<string> | string = reply(), pageText: Promise<string | null> | string | null = 'Site text') {
+function harness(
+  agentReply: Promise<string> | string = reply(),
+  pageText: Promise<string | null> | string | null = 'Site text',
+  product: unknown = { name: 'Acme', generalInfo: 'Finance copilot' },
+) {
   const agent = { suggest: jest.fn(async () => agentReply) };
+  const draftAgent = { draft: jest.fn(async () => agentReply) };
   const exa = { getPageText: jest.fn(async () => pageText) };
-  return { agent, exa, service: new ProductSuggestionsService(agent as never, exa as never) };
+  const findOne = jest.fn(async () => product);
+  const em = { fork: () => ({ findOne }) };
+  const service = new ProductSuggestionsService(em as never, agent as never, draftAgent as never, exa as never);
+  return { agent, draftAgent, exa, findOne, service };
 }
 
 describe('parseSuggestions', () => {
@@ -118,5 +132,52 @@ describe('ProductSuggestionsService', () => {
     } finally {
       jest.useRealTimers();
     }
+  });
+});
+
+describe('describeProduct', () => {
+  it('lets typed values replace saved ones and skips blanks', () => {
+    const product = { name: 'Acme', generalInfo: 'Saved', pricing: '', icp: { targetIndustries: ['SaaS'] } };
+    const text = describeProduct(product as never, { description: 'Typed', channel: '  ' });
+    expect(text).toContain('description: Typed');
+    expect(text).toContain('targetIndustries: SaaS');
+    expect(text).not.toContain('pricing');
+    expect(text).not.toContain('channel');
+  });
+});
+
+describe('draftField', () => {
+  it('drafts from the product of the current organization', async () => {
+    const { service, draftAgent, findOne } = harness('  Sell to CFOs first.  ');
+    const out = await service.draftField(ctx, { field: 'salesStrategy', productId: 'p-1' });
+    expect(out.text).toBe('Sell to CFOs first.');
+    expect(findOne).toHaveBeenCalledWith(expect.anything(), { id: 'p-1', organization: 'org-1' }, expect.anything());
+    expect(draftAgent.draft).toHaveBeenCalledWith(ctx, expect.stringContaining('name: Acme'), expect.any(String));
+  });
+
+  it('works without a saved product when the form has context', async () => {
+    const { service, findOne } = harness('A copilot.');
+    await service.draftField(ctx, { field: 'generalInfo', context: { name: 'Acme' } });
+    expect(findOne).not.toHaveBeenCalled();
+  });
+
+  it('cuts drafts to the field limit', async () => {
+    const out = await harness('x'.repeat(200)).service.draftField(ctx, { field: 'channelName', context: { name: 'Acme' } });
+    expect(out.text).toHaveLength(DRAFT_FIELDS.channelName.maxLength);
+  });
+
+  it('returns 404 for a product of another organization', async () => {
+    const { service } = harness('x', null, null);
+    await expect(service.draftField(ctx, { field: 'pricing', productId: 'p-2' })).rejects.toBeInstanceOf(NotFoundException);
+  });
+
+  it('returns 400 with nothing to draft from', async () => {
+    await expect(harness().service.draftField(ctx, { field: 'pricing' })).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it('returns 502 on a failed run', async () => {
+    await expect(
+      harness('Task failed.').service.draftField(ctx, { field: 'pricing', context: { name: 'Acme' } }),
+    ).rejects.toBeInstanceOf(BadGatewayException);
   });
 });

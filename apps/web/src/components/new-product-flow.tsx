@@ -1,7 +1,8 @@
 import { FormEvent, useRef, useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { Sparkles } from 'lucide-react';
-import type { ProductSuggestions, SuggestionList } from '@hothotleads/types';
+import type { DraftField, ProductSuggestions, SuggestionList } from '@hothotleads/types';
+import { AiDraft, draftToChips } from '@/components/ai-draft';
 import { Button } from '@/components/ui/button';
 import { ChipInput } from '@/components/ui/chip-input';
 import { Input, Textarea } from '@/components/ui/input';
@@ -24,11 +25,11 @@ export interface NewProductValues {
 type ListField = 'targetIndustries' | 'companySizes' | 'geographies' | 'fundingStages';
 type Lists = Record<ListField, string[]>;
 
-const LIST_FIELDS: Array<{ key: ListField; label: string }> = [
-  { key: 'targetIndustries', label: 'Target industries' },
-  { key: 'companySizes', label: 'Company sizes' },
-  { key: 'geographies', label: 'Regions' },
-  { key: 'fundingStages', label: 'Funding stages' },
+const LIST_FIELDS: Array<{ key: ListField; label: string; draft: DraftField }> = [
+  { key: 'targetIndustries', label: 'Target industries', draft: 'icpIndustries' },
+  { key: 'companySizes', label: 'Company sizes', draft: 'icpSizes' },
+  { key: 'geographies', label: 'Regions', draft: 'icpGeographies' },
+  { key: 'fundingStages', label: 'Funding stages', draft: 'icpStages' },
 ];
 
 const EMPTY_LISTS: Lists = { targetIndustries: [], companySizes: [], geographies: [], fundingStages: [] };
@@ -75,6 +76,14 @@ export function NewProductFlow({
   const trimmedName = name.trim();
   const inputKey = JSON.stringify([trimmedName, website.trim(), description.trim()]);
   const canSuggest = Boolean(trimmedName && (website.trim() || description.trim()));
+
+  const draftContext = {
+    name: trimmedName,
+    description: generalInfo || description,
+    website,
+    targetIndustries: lists.targetIndustries.join(', '),
+    notes,
+  };
 
   const suggest = useMutation({
     mutationFn: () =>
@@ -195,37 +204,48 @@ export function NewProductFlow({
       )}
       <FieldGroup>
         <Label htmlFor="np-info">Description</Label>
-        <Textarea
-          id="np-info"
-          rows={3}
-          maxLength={2000}
-          value={generalInfo}
-          onChange={(e) => setGeneralInfo(e.target.value)}
-          placeholder="One line on what it is."
-        />
+        <AiDraft field="generalInfo" value={generalInfo} onDraft={setGeneralInfo} context={draftContext}>
+          <Textarea
+            id="np-info"
+            rows={3}
+            maxLength={2000}
+            value={generalInfo}
+            onChange={(e) => setGeneralInfo(e.target.value)}
+            placeholder="One line on what it is."
+          />
+        </AiDraft>
       </FieldGroup>
-      {LIST_FIELDS.map(({ key, label }) => (
+      {LIST_FIELDS.map(({ key, label, draft }) => (
         <FieldGroup key={key}>
           <Label htmlFor={`np-${key}`}>{label}</Label>
-          <ChipInput
-            id={`np-${key}`}
-            values={lists[key]}
-            onChange={(next) => setLists((current) => ({ ...current, [key]: next }))}
-            suggestions={options[key]}
-            placeholder="Type to add your own"
-          />
+          <AiDraft
+            field={draft}
+            value={lists[key].join(', ')}
+            onDraft={(text) => setLists((current) => ({ ...current, [key]: draftToChips(text) }))}
+            context={draftContext}
+          >
+            <ChipInput
+              id={`np-${key}`}
+              values={lists[key]}
+              onChange={(next) => setLists((current) => ({ ...current, [key]: next }))}
+              suggestions={options[key]}
+              placeholder="Type to add your own"
+            />
+          </AiDraft>
         </FieldGroup>
       ))}
       <FieldGroup>
         <Label htmlFor="np-notes">Notes on your ideal customer</Label>
-        <Textarea
-          id="np-notes"
-          rows={3}
-          maxLength={2000}
-          value={notes}
-          onChange={(e) => setNotes(e.target.value)}
-          placeholder="Who buys, what triggers it, who to avoid."
-        />
+        <AiDraft field="icpNotes" value={notes} onDraft={setNotes} context={draftContext}>
+          <Textarea
+            id="np-notes"
+            rows={3}
+            maxLength={2000}
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            placeholder="Who buys, what triggers it, who to avoid."
+          />
+        </AiDraft>
       </FieldGroup>
       {create.isError && <p className="text-sm text-[var(--error)]">{(create.error as Error).message}</p>}
       <div className="flex items-center justify-between gap-2 pt-2">

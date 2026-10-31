@@ -85,7 +85,7 @@ export class LeadsRepository {
 
     return em.find(Lead, where, {
       limit: input.limit ?? 20,
-      orderBy: { updatedAt: 'DESC' },
+      orderBy: { score: QueryOrder.DESC_NULLS_LAST, updatedAt: 'DESC' },
     });
   }
 

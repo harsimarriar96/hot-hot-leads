@@ -7,7 +7,6 @@ import { ProductSwitcher } from './product-switcher';
 import { OrgSwitcher } from './org-switcher';
 import { UserMenu } from './user-menu';
 import { AgentActivityStrip } from './agent-activity-strip';
-import { useCommandPalette } from '@/hooks/use-command-palette';
 import { useNavItems } from '@/hooks/use-nav-items';
 import { useAuth } from '@/hooks/use-auth';
 
@@ -69,22 +68,6 @@ function PageHeader() {
   );
 }
 
-function CommandHint() {
-  const { setOpen } = useCommandPalette();
-  return (
-    <div className="px-3 pt-3 pb-1">
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        className="flex items-center justify-between w-full h-7 px-2 rounded-md border border-[var(--border)] bg-[var(--app)] font-mono text-[10px] text-[var(--text-tertiary)] hover:text-[var(--text)] hover:border-[var(--border-strong)] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
-      >
-        <span>Search & run</span>
-        <span>⌘K</span>
-      </button>
-    </div>
-  );
-}
-
 function DesktopSidebar() {
   const nav = useNavItems();
   const { isPlatformAdmin } = useAuth();
@@ -98,7 +81,6 @@ function DesktopSidebar() {
       <div className="px-2 pt-2">
         <OrgSwitcher />
       </div>
-      <CommandHint />
       <nav className="flex-1 flex flex-col gap-0.5 px-2 py-3">
         {nav.map(({ to, icon: Icon, label, end, soon }) => (
           <NavLink

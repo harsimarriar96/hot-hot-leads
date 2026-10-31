@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
 import { Composer } from '@/components/chat/composer';
@@ -31,23 +31,25 @@ function writeSelection(productId: string, chatId: string | null) {
   }
 }
 
-export function ProductChatTab({ productId, productName }: { productId: string; productName?: string }) {
+export function ProductChatTab({
+  productId,
+  productName,
+  autoPrompt,
+  onAutoPromptSent,
+}: {
+  productId: string;
+  productName?: string;
+  /** Sent in a new conversation, for actions started outside this tab. */
+  autoPrompt?: string | null;
+  onAutoPromptSent?: () => void;
+}) {
   const toast = useToast();
   const { can } = useAuth();
   const canRun = can('agents:run');
   const canClear = can('chat:write');
   const [confirmClear, setConfirmClear] = useState(false);
-  const [selected, setSelected] = useState<string | null>(() => readSelection(productId));
+  const [selected, setSelected] = useState<string | null>(() => (autoPrompt ? null : readSelection(productId)));
   const { data: chats } = useChatList(productId);
-
-  // Fall back to the newest conversation when the stored one is gone (or nothing is stored).
-  useEffect(() => {
-    if (!chats) return;
-    if (selected && chats.some((c) => c.id === selected)) return;
-    const next = chats[0]?.id ?? null;
-    setSelected(next);
-    writeSelection(productId, next);
-  }, [chats, selected, productId]);
 
   function select(chatId: string | null) {
     setSelected(chatId);
@@ -60,6 +62,28 @@ export function ProductChatTab({ productId, productName }: { productId: string; 
     productName,
     onChatCreated: select,
   });
+
+  // Fall back to the newest conversation when the stored one is gone (or nothing is stored).
+  // Not while a new conversation is starting: nothing is selected until the server creates it.
+  useEffect(() => {
+    if (!chats || autoPrompt || busy) return;
+    if (selected && chats.some((c) => c.id === selected)) return;
+    const next = chats[0]?.id ?? null;
+    setSelected(next);
+    writeSelection(productId, next);
+  }, [chats, selected, productId, autoPrompt, busy]);
+
+  // On a timer because the stream hook aborts on unmount, which StrictMode rehearses right after mounting.
+  const autoSent = useRef(false);
+  useEffect(() => {
+    if (!autoPrompt || autoSent.current) return;
+    const timer = setTimeout(() => {
+      autoSent.current = true;
+      send(autoPrompt);
+      onAutoPromptSent?.();
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [autoPrompt, send, onAutoPromptSent]);
 
   function onClearConfirmed() {
     setConfirmClear(false);

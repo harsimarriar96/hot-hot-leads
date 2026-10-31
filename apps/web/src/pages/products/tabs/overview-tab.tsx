@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Plus, Trash2 } from 'lucide-react';
+import type { DraftField } from '@hothotleads/types';
+import { AiDraft, draftToChips } from '@/components/ai-draft';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label, FieldGroup } from '@/components/ui/label';
@@ -37,6 +39,8 @@ export function ProductOverviewTab({ product, onChanged, readOnly = false }: Pro
     window.addEventListener('beforeunload', handler);
     return () => window.removeEventListener('beforeunload', handler);
   }, [dirty]);
+
+  const draftContext = { name, description: generalInfo, salesStrategy, pricing };
 
   function bindSet<T>(setter: (v: T) => void) {
     return (v: T) => {
@@ -80,36 +84,42 @@ export function ProductOverviewTab({ product, onChanged, readOnly = false }: Pro
           </FieldGroup>
           <FieldGroup>
             <Label htmlFor="pv-info">General info</Label>
-            <textarea
-              id="pv-info"
-              rows={3}
-              value={generalInfo}
-              onChange={(e) => bindSet(setGeneralInfo)(e.target.value)}
-              disabled={readOnly}
-              className="w-full rounded-md border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm focus:outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--ring)]"
-            />
+            <AiDraft field="generalInfo" productId={product.id} value={generalInfo} onDraft={bindSet(setGeneralInfo)} context={draftContext} disabled={readOnly}>
+              <textarea
+                id="pv-info"
+                rows={3}
+                value={generalInfo}
+                onChange={(e) => bindSet(setGeneralInfo)(e.target.value)}
+                disabled={readOnly}
+                className="w-full rounded-md border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm focus:outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--ring)]"
+              />
+            </AiDraft>
           </FieldGroup>
           <FieldGroup>
             <Label htmlFor="pv-strategy">Sales strategy</Label>
-            <textarea
-              id="pv-strategy"
-              rows={4}
-              value={salesStrategy}
-              onChange={(e) => bindSet(setSalesStrategy)(e.target.value)}
-              disabled={readOnly}
-              className="w-full rounded-md border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm focus:outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--ring)]"
-            />
+            <AiDraft field="salesStrategy" productId={product.id} value={salesStrategy} onDraft={bindSet(setSalesStrategy)} context={draftContext} disabled={readOnly}>
+              <textarea
+                id="pv-strategy"
+                rows={4}
+                value={salesStrategy}
+                onChange={(e) => bindSet(setSalesStrategy)(e.target.value)}
+                disabled={readOnly}
+                className="w-full rounded-md border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm focus:outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--ring)]"
+              />
+            </AiDraft>
           </FieldGroup>
           <FieldGroup>
             <Label htmlFor="pv-pricing">Pricing</Label>
-            <textarea
-              id="pv-pricing"
-              rows={3}
-              value={pricing}
-              onChange={(e) => bindSet(setPricing)(e.target.value)}
-              disabled={readOnly}
-              className="w-full rounded-md border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm focus:outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--ring)]"
-            />
+            <AiDraft field="pricing" productId={product.id} value={pricing} onDraft={bindSet(setPricing)} context={draftContext} disabled={readOnly}>
+              <textarea
+                id="pv-pricing"
+                rows={3}
+                value={pricing}
+                onChange={(e) => bindSet(setPricing)(e.target.value)}
+                disabled={readOnly}
+                className="w-full rounded-md border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm focus:outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--ring)]"
+              />
+            </AiDraft>
           </FieldGroup>
           {error && <p className="text-sm text-[var(--error)]">{error}</p>}
           {!readOnly && (
@@ -136,6 +146,7 @@ export function ProductOverviewTab({ product, onChanged, readOnly = false }: Pro
         }))}
         fieldKeys={['name', 'description', 'template']}
         fieldLabels={{ name: 'Name', description: 'Description', template: 'Template' }}
+        draftFields={{ name: 'channelName', description: 'channelDescription', template: 'channelTemplate' }}
       />
       <ChildEditorSection
         product={product}
@@ -149,6 +160,7 @@ export function ProductOverviewTab({ product, onChanged, readOnly = false }: Pro
         }))}
         fieldKeys={['name', 'url', 'description']}
         fieldLabels={{ name: 'Name', url: 'URL', description: 'Description' }}
+        draftFields={{ name: 'sourceName', description: 'sourceDescription' }}
       />
       <ChildEditorSection
         product={product}
@@ -174,6 +186,7 @@ export function ProductOverviewTab({ product, onChanged, readOnly = false }: Pro
           industry: 'Industry',
           icpFitNotes: 'ICP fit notes',
         }}
+        draftFields={{ industry: 'prospectIndustry', icpFitNotes: 'prospectFitNotes' }}
       />
     </div>
   );
@@ -189,6 +202,13 @@ function IcpSection({ product, onChanged, readOnly = false }: Props) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const toast = useToast();
+  const icpContext = {
+    targetIndustries: industries.join(', '),
+    companySizes: sizes.join(', '),
+    geographies: geos.join(', '),
+    fundingStages: stages.join(', '),
+    icpNotes: notes,
+  };
 
   async function save() {
     setSaving(true);
@@ -216,56 +236,94 @@ function IcpSection({ product, onChanged, readOnly = false }: Props) {
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3">
         <FieldGroup>
           <Label htmlFor="icp-industries">Target industries</Label>
-          <ChipInput
-            id="icp-industries"
-            values={industries}
-            onChange={setIndustries}
-            placeholder="Add industry…"
+          <AiDraft
+            field="icpIndustries"
+            productId={product.id}
+            value={industries.join(', ')}
+            onDraft={(text) => setIndustries(draftToChips(text))}
+            context={icpContext}
             disabled={readOnly}
-          />
+          >
+            <ChipInput
+              id="icp-industries"
+              values={industries}
+              onChange={setIndustries}
+              placeholder="Add industry…"
+              disabled={readOnly}
+            />
+          </AiDraft>
         </FieldGroup>
         <FieldGroup>
           <Label htmlFor="icp-sizes">Company sizes</Label>
-          <ChipInput
-            id="icp-sizes"
-            values={sizes}
-            onChange={setSizes}
-            placeholder="Add company size…"
+          <AiDraft
+            field="icpSizes"
+            productId={product.id}
+            value={sizes.join(', ')}
+            onDraft={(text) => setSizes(draftToChips(text))}
+            context={icpContext}
             disabled={readOnly}
-          />
+          >
+            <ChipInput
+              id="icp-sizes"
+              values={sizes}
+              onChange={setSizes}
+              placeholder="Add company size…"
+              disabled={readOnly}
+            />
+          </AiDraft>
         </FieldGroup>
         <FieldGroup>
           <Label htmlFor="icp-stages">Funding stages</Label>
-          <ChipInput
-            id="icp-stages"
-            values={stages}
-            onChange={setStages}
-            placeholder="Add funding stage…"
+          <AiDraft
+            field="icpStages"
+            productId={product.id}
+            value={stages.join(', ')}
+            onDraft={(text) => setStages(draftToChips(text))}
+            context={icpContext}
             disabled={readOnly}
-          />
+          >
+            <ChipInput
+              id="icp-stages"
+              values={stages}
+              onChange={setStages}
+              placeholder="Add funding stage…"
+              disabled={readOnly}
+            />
+          </AiDraft>
         </FieldGroup>
         <FieldGroup>
           <Label htmlFor="icp-geos">Geographies</Label>
-          <ChipInput
-            id="icp-geos"
-            values={geos}
-            onChange={setGeos}
-            placeholder="Add geography…"
+          <AiDraft
+            field="icpGeographies"
+            productId={product.id}
+            value={geos.join(', ')}
+            onDraft={(text) => setGeos(draftToChips(text))}
+            context={icpContext}
             disabled={readOnly}
-          />
+          >
+            <ChipInput
+              id="icp-geos"
+              values={geos}
+              onChange={setGeos}
+              placeholder="Add geography…"
+              disabled={readOnly}
+            />
+          </AiDraft>
         </FieldGroup>
       </div>
       <FieldGroup>
         <Label htmlFor="icp-notes">Notes</Label>
-        <textarea
-          id="icp-notes"
-          rows={3}
-          value={notes}
-          onChange={(e) => setNotes(e.target.value)}
-          disabled={readOnly}
-          className="w-full rounded-md border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm focus:outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--ring)]"
-          maxLength={2000}
-        />
+        <AiDraft field="icpNotes" productId={product.id} value={notes} onDraft={setNotes} context={icpContext} disabled={readOnly}>
+          <textarea
+            id="icp-notes"
+            rows={3}
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            disabled={readOnly}
+            className="w-full rounded-md border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm focus:outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--ring)]"
+            maxLength={2000}
+          />
+        </AiDraft>
       </FieldGroup>
       {error && <p className="text-sm text-[var(--error)]">{error}</p>}
       {!readOnly && (
@@ -293,10 +351,12 @@ interface ChildEditorProps {
   items: ChildItem[];
   fieldKeys: string[];
   fieldLabels: Record<string, string>;
+  /** Fields the AI can draft. Facts such as URLs, domains and company names are left out. */
+  draftFields: Partial<Record<string, DraftField>>;
 }
 
 function ChildEditorSection(props: ChildEditorProps) {
-  const { product, onChanged, kind, heading, items, fieldKeys, fieldLabels, readOnly = false } = props;
+  const { product, onChanged, kind, heading, items, fieldKeys, fieldLabels, draftFields, readOnly = false } = props;
   const [adding, setAdding] = useState(false);
   const [draft, setDraft] = useState<Record<string, string>>({});
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -365,8 +425,10 @@ function ChildEditorSection(props: ChildEditorProps) {
             <ChildRow
               key={item.id}
               item={item}
+              productId={product.id}
               fieldKeys={fieldKeys}
               fieldLabels={fieldLabels}
+              draftFields={draftFields}
               busy={busyId === item.id}
               readOnly={readOnly}
               onSave={(body) => patch(item.id, body)}
@@ -378,10 +440,13 @@ function ChildEditorSection(props: ChildEditorProps) {
               {fieldKeys.map((k) => (
                 <FieldGroup key={k}>
                   <Label htmlFor={`add-${kind}-${k}`}>{fieldLabels[k] ?? k}</Label>
-                  <Input
+                  <ChildField
                     id={`add-${kind}-${k}`}
+                    productId={product.id}
+                    field={draftFields[k]}
                     value={draft[k] ?? ''}
-                    onChange={(e) => setDraft({ ...draft, [k]: e.target.value })}
+                    context={draft}
+                    onChange={(v) => setDraft((d) => ({ ...d, [k]: v }))}
                   />
                 </FieldGroup>
               ))}
@@ -410,18 +475,48 @@ function ChildEditorSection(props: ChildEditorProps) {
   );
 }
 
+function ChildField({
+  id,
+  productId,
+  field,
+  value,
+  context,
+  onChange,
+}: {
+  id: string;
+  productId: string;
+  field?: DraftField;
+  value: string;
+  context: Record<string, string>;
+  onChange: (value: string) => void;
+}) {
+  const input = <Input id={id} value={value} onChange={(e) => onChange(e.target.value)} />;
+  if (!field) return input;
+  // Prefixed so this item's "name" does not read as the product's name.
+  const itemContext = Object.fromEntries(Object.entries(context).map(([k, v]) => [`item_${k}`, v]));
+  return (
+    <AiDraft field={field} productId={productId} value={value} onDraft={onChange} context={itemContext}>
+      {input}
+    </AiDraft>
+  );
+}
+
 function ChildRow({
   item,
+  productId,
   fieldKeys,
   fieldLabels,
+  draftFields,
   busy,
   readOnly = false,
   onSave,
   onDelete,
 }: {
   item: ChildItem;
+  productId: string;
   fieldKeys: string[];
   fieldLabels: Record<string, string>;
+  draftFields: Partial<Record<string, DraftField>>;
   busy: boolean;
   readOnly?: boolean;
   onSave: (body: Record<string, unknown>) => void;
@@ -462,10 +557,13 @@ function ChildRow({
       {fieldKeys.map((k) => (
         <FieldGroup key={k}>
           <Label htmlFor={`edit-${item.id}-${k}`}>{fieldLabels[k] ?? k}</Label>
-          <Input
+          <ChildField
             id={`edit-${item.id}-${k}`}
+            productId={productId}
+            field={draftFields[k]}
             value={draft[k]}
-            onChange={(e) => setDraft({ ...draft, [k]: e.target.value })}
+            context={draft}
+            onChange={(v) => setDraft((d) => ({ ...d, [k]: v }))}
           />
         </FieldGroup>
       ))}
@@ -570,16 +668,18 @@ function AgentSection({ product, onChanged, readOnly = false }: Props) {
 
       <FieldGroup>
         <Label htmlFor="ag-extra">Extra instructions</Label>
-        <textarea
-          id="ag-extra"
-          rows={4}
-          value={extra}
-          onChange={(e) => setExtra(e.target.value)}
-          disabled={readOnly}
-          placeholder="e.g. prefer fintech in US/EU; deprioritise consumer; require recent funding round"
-          className="w-full rounded-md border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm focus:outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--ring)]"
-          maxLength={4000}
-        />
+        <AiDraft field="agentInstructions" productId={product.id} value={extra} onDraft={setExtra} context={undefined} disabled={readOnly}>
+          <textarea
+            id="ag-extra"
+            rows={4}
+            value={extra}
+            onChange={(e) => setExtra(e.target.value)}
+            disabled={readOnly}
+            placeholder="e.g. prefer fintech in US/EU; deprioritise consumer; require recent funding round"
+            className="w-full rounded-md border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm focus:outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--ring)]"
+            maxLength={4000}
+          />
+        </AiDraft>
         <p className="text-xs text-[var(--text-tertiary)]">
           Appended to every agent's system prompt for this product.
         </p>

@@ -42,7 +42,7 @@ export interface ProductDetail {
   }>;
 }
 
-import type { ProductSuggestions } from '@hothotleads/types';
+import type { DraftField, ProductSuggestions } from '@hothotleads/types';
 import { apiJson, deleteJson, postJson } from './http';
 
 const jsonOrThrow = apiJson;
@@ -68,6 +68,8 @@ export const productsApi = {
     }),
   suggest: (body: { name: string; website?: string; description?: string }) =>
     postJson<ProductSuggestions>('/api/products/suggestions', body),
+  draftField: (body: { field: DraftField; productId?: string; context?: Record<string, string> }) =>
+    postJson<{ text: string }>('/api/products/draft-field', body),
   update: (
     id: string,
     body: {

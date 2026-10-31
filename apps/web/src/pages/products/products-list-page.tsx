@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -128,7 +129,29 @@ export function ProductsListPage() {
         </div>
       )}
 
-      {data && data.length > 0 && cards && <ProductCardGrid products={cards} />}
+      {data && data.length > 0 && cards && (
+        <ProductCardGrid
+          products={cards}
+          trailing={
+            <Can perm="products:write">
+              <li className="flex">
+                <GateHint reason={limitReason}>
+                  <button
+                    type="button"
+                    onClick={() => setCreating(true)}
+                    disabled={createBlocked}
+                    aria-label="New product"
+                    className="flex min-h-44 w-full flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-[var(--border-strong)] text-[var(--text-secondary)] transition-colors hover:border-[var(--accent)] hover:text-[var(--accent)] hover:bg-[var(--surface-hover)] disabled:pointer-events-none disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
+                  >
+                    <Plus className="h-10 w-10" aria-hidden />
+                    <span className="text-sm font-medium">New product</span>
+                  </button>
+                </GateHint>
+              </li>
+            </Can>
+          }
+        />
+      )}
 
       <Dialog open={creating} onOpenChange={setCreating}>
         <DialogContent width="lg" className="max-h-[calc(100dvh-2rem)] overflow-y-auto">
