@@ -137,8 +137,8 @@ export function ProductDetailPage() {
   }
 
   // The run happens in chat, where its progress is visible as it goes.
-  function generateLeads(productName: string) {
-    setChatPrompt(`generate 5 leads for ${productName}`);
+  function startRun(prompt: string) {
+    setChatPrompt(prompt);
     switchTab('chat');
   }
 
@@ -254,11 +254,11 @@ export function ProductDetailPage() {
           />
         )}
         {tab === 'leads' && (
-          <ProductLeadsTab productName={data.name} product={data} onGenerate={() => generateLeads(data.name)} />
+          <ProductLeadsTab productName={data.name} product={data} onGenerate={startRun} />
         )}
         {tab === 'signals' &&
           (signalsEnabled ? (
-            <ProductSignalsTab productName={data.name} />
+            <ProductSignalsTab productName={data.name} onGenerate={startRun} />
           ) : (
             <FeatureUnavailable feature="signals" />
           ))}

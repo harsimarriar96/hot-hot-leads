@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Flame, LayoutGrid, List, Sparkles } from 'lucide-react';
+import { Flame, LayoutGrid, List } from 'lucide-react';
 import { api } from '@/lib/api';
 import type { Lead } from '@/lib/types';
 import type { ProductDetail } from '@/lib/products';
@@ -10,10 +10,8 @@ import {
   scoreTone,
   scoreToneLabel,
 } from '@/lib/display-labels';
-import { Button } from '@/components/ui/button';
-import { GateHint, featureReason } from '@/components/gate';
+import { GenerateRunButton } from '@/components/generate-run';
 import { LeadExplainSheet } from '@/components/lead-explain-sheet';
-import { useAuth } from '@/hooks/use-auth';
 import { cn } from '@/lib/utils';
 
 type LeadsView = 'list' | 'grid';
@@ -43,7 +41,7 @@ export function ProductLeadsTab({
 }: {
   productName: string;
   product: ProductDetail;
-  onGenerate: () => void;
+  onGenerate: (prompt: string) => void;
 }) {
   const [active, setActive] = useState<Lead | null>(null);
   const [view, setView] = useState<LeadsView>(readView);
@@ -66,7 +64,7 @@ export function ProductLeadsTab({
         <p className="mt-1 mb-4 text-xs text-[var(--text-tertiary)]">
           The agents find companies that match this product's ideal customer.
         </p>
-        <GenerateLeadsButton onGenerate={onGenerate} variant="primary" />
+        <GenerateRunButton kind="leads" productName={productName} onGenerate={onGenerate} variant="primary" />
       </div>
     );
   }
@@ -82,7 +80,7 @@ export function ProductLeadsTab({
         </span>
         <div className="flex items-center gap-2">
           <ViewToggle view={view} onChange={changeView} />
-          <GenerateLeadsButton onGenerate={onGenerate} variant="outline" />
+          <GenerateRunButton kind="leads" productName={productName} onGenerate={onGenerate} variant="outline" />
         </div>
       </div>
 
@@ -145,20 +143,6 @@ function LeadsSection({
         </ul>
       )}
     </section>
-  );
-}
-
-function GenerateLeadsButton({ onGenerate, variant }: { onGenerate: () => void; variant: 'primary' | 'outline' }) {
-  const { can, hasFeature, activeOrg } = useAuth();
-  if (!can('agents:run')) return null;
-  const missing = !hasFeature('discovery') ? 'discovery' : !hasFeature('chat') ? 'chat' : null;
-  return (
-    <GateHint reason={missing && featureReason(missing, activeOrg?.name)}>
-      <Button variant={variant} size="sm" onClick={onGenerate} disabled={Boolean(missing)}>
-        <Sparkles className="h-3.5 w-3.5" aria-hidden />
-        Generate leads
-      </Button>
-    </GateHint>
   );
 }
 

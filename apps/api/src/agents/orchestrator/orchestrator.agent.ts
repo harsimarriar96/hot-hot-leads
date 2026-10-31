@@ -150,12 +150,13 @@ export class OrchestratorAgent extends BaseAgent {
         schema: {
           productName: z.string(),
           daysBack: z.number().optional(),
+          focus: z.string().optional(),
         },
         handler: async (input, ctx) => {
           const productName = input.productName as string;
           const startedAt = new Date();
           const summary = await this.signalMonitorAgent.run(
-            `Check signals for product "${productName}" from the last ${input.daysBack ?? 7} days.`,
+            `Check signals for product "${productName}" from the last ${input.daysBack ?? 7} days${input.focus ? `. Focus: ${input.focus}` : ''}.`,
             { ctx },
           );
           const signals = await this.signalsRepo.listCreatedSince(ctx.org.id, productName, startedAt);
