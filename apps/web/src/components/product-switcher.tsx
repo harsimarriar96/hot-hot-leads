@@ -14,8 +14,8 @@ import {
 } from './ui/dropdown-menu';
 
 /**
- * Picks the product the dashboard and chat pages are scoped to. The selection is
- * app-wide (see useCurrentProduct), so every page follows it immediately.
+ * Picks the product the chat page is scoped to, and is only shown there (see
+ * AppShell). The selection is remembered per organization (see useCurrentProduct).
  */
 export function ProductSwitcher({ className }: { className?: string }) {
   const { current, products, select } = useCurrentProduct();

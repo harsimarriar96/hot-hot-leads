@@ -107,6 +107,7 @@ export function ProductDetailPage() {
         });
       } finally {
         qc.invalidateQueries({ queryKey: ['products'] });
+        qc.invalidateQueries({ queryKey: ['dashboard', 'overview'] });
       }
     }, 5000);
 
@@ -235,7 +236,10 @@ export function ProductDetailPage() {
           <ProductOverviewTab
             product={data}
             readOnly={!can('products:write')}
-            onChanged={() => qc.invalidateQueries({ queryKey: ['product', productId] })}
+            onChanged={() => {
+              qc.invalidateQueries({ queryKey: ['product', productId] });
+              qc.invalidateQueries({ queryKey: ['dashboard', 'overview'] });
+            }}
           />
         )}
         {tab === 'leads' && <ProductLeadsTab productName={data.name} product={data} />}

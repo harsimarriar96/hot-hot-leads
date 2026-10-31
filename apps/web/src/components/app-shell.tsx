@@ -52,12 +52,17 @@ function PageHeader() {
   const nav = useNavItems();
   const active = nav.find((n) => (n.end ? loc.pathname === n.to : loc.pathname.startsWith(n.to)));
   const title = active?.label ?? 'HotHotLeads';
+  const showProductSwitcher = loc.pathname.startsWith('/chat');
   return (
     <header className="hidden md:flex items-center justify-between gap-3 border-b border-[var(--border)] bg-[var(--app)] px-6 h-12 shrink-0">
       <h1 className="text-sm font-semibold text-[var(--text)] truncate">{title}</h1>
       <div className="flex items-center gap-2 shrink-0">
-        <ProductSwitcher />
-        <div className="hidden sm:block w-px h-5 bg-[var(--border)]" />
+        {showProductSwitcher && (
+          <>
+            <ProductSwitcher />
+            <div className="hidden sm:block w-px h-5 bg-[var(--border)]" />
+          </>
+        )}
         <ThemeToggle />
       </div>
     </header>
@@ -143,13 +148,14 @@ function DesktopSidebar() {
 }
 
 function MobileTopBar() {
+  const loc = useLocation();
   return (
     <header className="md:hidden flex items-center justify-between h-12 px-4 border-b border-[var(--border)] bg-[var(--app)]">
       <NavLink to="/products" aria-label="HotHotLeads home">
         <Logo className="h-7" />
       </NavLink>
       <div className="flex items-center gap-2">
-        <ProductSwitcher />
+        {loc.pathname.startsWith('/chat') && <ProductSwitcher />}
         <ThemeToggle />
         <UserMenu compact />
       </div>

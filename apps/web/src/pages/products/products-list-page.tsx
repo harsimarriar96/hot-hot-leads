@@ -1,7 +1,5 @@
 import { FormEvent, useState } from 'react';
-import { Link } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label, FieldGroup } from '@/components/ui/label';
@@ -11,7 +9,10 @@ import {
   DialogDescription,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { SkeletonRow } from '@/components/ui/skeleton';
+import { Skeleton } from '@/components/ui/skeleton';
+import { ErrorTable } from '@/components/dashboard/row';
+import { ProductCardGrid } from '@/components/dashboard/product-cards';
+import { dashboardApi } from '@/lib/dashboard';
 import { productsApi, adminApi } from '@/lib/products';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/use-auth';
@@ -25,6 +26,9 @@ export function ProductsListPage() {
     queryFn: productsApi.list,
     staleTime: 10_000,
   });
+  const overview = useQuery({ queryKey: ['dashboard', 'overview'], queryFn: dashboardApi.overview });
+  // The products query stays the roster: a delete hides the product there first, during its undo window.
+  const cards = overview.data?.products.filter((p) => data?.some((row) => row.id === p.id));
   const [creating, setCreating] = useState(false);
   const [seeding, setSeeding] = useState(false);
   const { can } = useAuth();
@@ -35,7 +39,10 @@ export function ProductsListPage() {
     setSeeding(true);
     try {
       const result = await adminApi.demoSeed();
-      await qc.invalidateQueries({ queryKey: ['products'] });
+      await Promise.all([
+        qc.invalidateQueries({ queryKey: ['products'] }),
+        qc.invalidateQueries({ queryKey: ['dashboard', 'overview'] }),
+      ]);
       toast.push({
         message: `Loaded ${result.counts.leads} leads, ${result.counts.signals} signals`,
         durationMs: 4000,
@@ -52,7 +59,7 @@ export function ProductsListPage() {
 
   return (
     <div className="mx-auto max-w-5xl px-6 py-8">
-      <header className="flex items-baseline justify-between gap-3 mb-5">
+      <header className="flex flex-col items-start gap-1 mb-5">
         <div className="flex items-baseline gap-3">
           <h1 className="text-xl font-semibold tracking-tight">Products</h1>
           <span className="text-xs font-mono text-[var(--text-tertiary)]">
@@ -60,21 +67,32 @@ export function ProductsListPage() {
           </span>
         </div>
         <Can perm="products:write">
-          <GateHint reason={limitReason}>
-            <Button onClick={() => setCreating(true)} disabled={createBlocked}>
-              <Plus className="h-3.5 w-3.5" />
-              New product
-            </Button>
-          </GateHint>
+          <p className="text-sm text-[var(--text-secondary)]">
+            Selling something else?{' '}
+            <GateHint reason={limitReason}>
+              <button
+                type="button"
+                onClick={() => setCreating(true)}
+                disabled={createBlocked}
+                className="font-medium text-[var(--accent)] hover:underline underline-offset-4 disabled:pointer-events-none disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] rounded-sm"
+              >
+                Add a new product
+              </button>
+            </GateHint>
+          </p>
         </Can>
       </header>
 
-      {isLoading && (
-        <div className="rounded-lg border border-[var(--border)]">
-          <SkeletonRow />
-          <SkeletonRow />
-          <SkeletonRow />
+      {(isLoading || (data && data.length > 0 && overview.isPending)) && (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3" aria-busy>
+          <Skeleton className="h-40 rounded-lg" />
+          <Skeleton className="h-40 rounded-lg" />
+          <Skeleton className="h-40 rounded-lg" />
         </div>
+      )}
+
+      {data && data.length > 0 && overview.isError && (
+        <ErrorTable message={(overview.error as Error)?.message ?? 'Failed to load products.'} />
       )}
 
       {data && data.length === 0 && (
@@ -101,42 +119,7 @@ export function ProductsListPage() {
         </div>
       )}
 
-      {data && data.length > 0 && (
-        <ul className="divide-y divide-[var(--border)] rounded-lg border border-[var(--border)]">
-          {data.map((p) => (
-            <li
-              key={p.id}
-              className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 px-4 py-3"
-            >
-              <div className="flex-1 min-w-0">
-                <Link
-                  to={`/products/${p.id}`}
-                  className="font-medium text-[var(--text)] hover:underline decoration-[var(--accent)] underline-offset-4"
-                >
-                  {p.name}
-                </Link>
-                {p.generalInfo && (
-                  <p className="mt-0.5 text-xs text-[var(--text-tertiary)] line-clamp-1">
-                    {p.generalInfo}
-                  </p>
-                )}
-              </div>
-              <div className="flex items-center justify-between sm:justify-end gap-4 sm:gap-4">
-                <Stat label="Leads" value={p.leadCount} />
-                <Stat label="Signals 30d" value={p.activeSignalCount} />
-                <Stat
-                  label="Last chat"
-                  value={
-                    p.lastChatActivityAt
-                      ? new Date(p.lastChatActivityAt).toLocaleDateString()
-                      : '—'
-                  }
-                />
-              </div>
-            </li>
-          ))}
-        </ul>
-      )}
+      {data && data.length > 0 && cards && <ProductCardGrid products={cards} />}
 
       <CreateProductDialog
         open={creating}
@@ -144,19 +127,9 @@ export function ProductsListPage() {
         onCreated={() => {
           setCreating(false);
           qc.invalidateQueries({ queryKey: ['products'] });
+          qc.invalidateQueries({ queryKey: ['dashboard', 'overview'] });
         }}
       />
-    </div>
-  );
-}
-
-function Stat({ label, value }: { label: string; value: string | number }) {
-  return (
-    <div className="text-right min-w-20">
-      <p className="text-[10px] font-medium uppercase tracking-wider text-[var(--text-tertiary)]">
-        {label}
-      </p>
-      <p className="text-sm font-mono tabular-nums text-[var(--text)]">{value}</p>
     </div>
   );
 }

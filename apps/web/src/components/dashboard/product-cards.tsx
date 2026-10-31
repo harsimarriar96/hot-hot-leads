@@ -91,15 +91,21 @@ function ProductCard({ product }: { product: ProductRow }) {
   );
 }
 
+export function ProductCardGrid({ products }: { products: ProductRow[] }) {
+  return (
+    <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      {products.map((p) => (
+        <ProductCard key={p.id} product={p} />
+      ))}
+    </ul>
+  );
+}
+
 export function ProductCards({ products }: { products: ProductRow[] }) {
   return (
     <section>
       <h2 className="text-sm font-semibold text-[var(--text)] mb-3">Products</h2>
-      <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {products.map((p) => (
-          <ProductCard key={p.id} product={p} />
-        ))}
-      </ul>
+      <ProductCardGrid products={products} />
     </section>
   );
 }
